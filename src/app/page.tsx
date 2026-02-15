@@ -16,6 +16,12 @@ type CalendarEvent = {
   when: string;
 };
 
+type Journal = {
+  id: string;
+  text: string;
+  createdAt: string;
+};
+
 type Stats = {
   totalTasks: number;
   doneTasks: number;
@@ -34,8 +40,10 @@ type Weather = {
 export default function Home() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [journals, setJournals] = useState<Journal[]>([]);
 
   const [input, setInput] = useState("");
+  const [journalInput, setJournalInput] = useState("");
   const [priority, setPriority] = useState<"high" | "medium" | "low">("medium");
 
   const [eventTitle, setEventTitle] = useState("");
@@ -51,16 +59,18 @@ export default function Home() {
   }, [stats]);
 
   const refresh = async () => {
-    const [tasksRes, statsRes, weatherRes, eventsRes] = await Promise.all([
+    const [tasksRes, statsRes, weatherRes, eventsRes, journalsRes] = await Promise.all([
       fetch("/api/tasks"),
       fetch("/api/stats"),
       fetch("/api/weather"),
       fetch("/api/events"),
+      fetch("/api/journals"),
     ]);
 
     setTasks(await tasksRes.json());
     setStats(await statsRes.json());
     setEvents(await eventsRes.json());
+    setJournals(await journalsRes.json());
 
     if (weatherRes.ok) {
       setWeather(await weatherRes.json());
@@ -125,6 +135,22 @@ export default function Home() {
     await refresh();
   };
 
+  const addJournal = async () => {
+    if (!journalInput.trim()) return;
+    await fetch("/api/journals", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: journalInput }),
+    });
+    setJournalInput("");
+    await refresh();
+  };
+
+  const removeJournal = async (id: string) => {
+    await fetch(`/api/journals/${id}`, { method: "DELETE" });
+    await refresh();
+  };
+
   return (
     <main className={styles.page}>
       <h1>개인 운영 대시보드</h1>
@@ -142,6 +168,9 @@ export default function Home() {
             </li>
             <li>
               등록된 할 일: <b>{stats?.totalTasks ?? 0}개</b>
+            </li>
+            <li>
+              오늘 기록 메모: <b>{stats?.journalsCount ?? 0}개</b>
             </li>
           </ul>
           <div className={styles.focusButtons}>
@@ -196,6 +225,33 @@ export default function Home() {
                 {task.priority === "high" ? "중요" : task.priority === "medium" ? "보통" : "낮음"}
               </span>
               <button onClick={() => removeTask(task.id)}>삭제</button>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className={styles.card}>
+        <h2>하루 메모</h2>
+        <div className={styles.addRowJournal}>
+          <input
+            placeholder="예: 오전엔 집중 잘됐고, 오후엔 회의가 길어짐"
+            value={journalInput}
+            onChange={(e) => setJournalInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && addJournal()}
+          />
+          <button onClick={addJournal}>메모 추가</button>
+        </div>
+
+        <div className={styles.tasks}>
+          {journals.length === 0 && <p>아직 메모가 없습니다.</p>}
+          {journals.map((journal) => (
+            <div key={journal.id} className={styles.taskItem}>
+              <div>
+                <b>{journal.text}</b>
+                <p className={styles.eventTime}>{new Date(journal.createdAt).toLocaleString("ko-KR")}</p>
+              </div>
+              <span className={styles.priority}>메모</span>
+              <button onClick={() => removeJournal(journal.id)}>삭제</button>
             </div>
           ))}
         </div>
