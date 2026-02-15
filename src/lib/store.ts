@@ -21,10 +21,18 @@ export type Journal = {
   createdAt: string;
 };
 
+export type CalendarEvent = {
+  id: string;
+  title: string;
+  when: string;
+  createdAt: string;
+};
+
 type DashboardData = {
   tasks: Task[];
   focusSessions: FocusSession[];
   journals: Journal[];
+  events: CalendarEvent[];
 };
 
 const dataDir = path.join(process.cwd(), "data");
@@ -34,6 +42,7 @@ const defaultData: DashboardData = {
   tasks: [],
   focusSessions: [],
   journals: [],
+  events: [],
 };
 
 export async function readData(): Promise<DashboardData> {

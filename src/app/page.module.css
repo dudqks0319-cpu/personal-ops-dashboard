@@ -128,6 +128,40 @@
   border-radius: 999px;
 }
 
+.addRowCalendar {
+  display: grid;
+  grid-template-columns: 1fr 220px 110px;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.addRowCalendar input {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 11px 12px;
+}
+
+.addRowCalendar input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.15);
+}
+
+.addRowCalendar button {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 12px;
+  padding: 9px 13px;
+  cursor: pointer;
+}
+
+.eventTime {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
 @media (max-width: 760px) {
   .page {
     padding: 26px 14px 40px;
@@ -143,6 +177,7 @@
   }
 
   .addRow,
+  .addRowCalendar,
   .taskItem {
     grid-template-columns: 1fr;
   }
