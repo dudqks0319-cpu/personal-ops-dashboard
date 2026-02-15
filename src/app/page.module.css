@@ -1,0 +1,102 @@
+.page {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 28px 16px 40px;
+}
+
+.sub {
+  color: #64748b;
+  margin-bottom: 18px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.card h2 {
+  margin: 0 0 10px;
+  font-size: 18px;
+}
+
+.focusButtons {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.focusButtons button,
+.addRow button,
+.taskItem button {
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.addRow {
+  display: grid;
+  grid-template-columns: 1fr 110px 80px;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.addRow input,
+.addRow select {
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.tasks {
+  display: grid;
+  gap: 8px;
+}
+
+.taskItem {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 8px;
+  align-items: center;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.taskItem label {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.done {
+  text-decoration: line-through;
+  color: #94a3b8;
+}
+
+.priority {
+  font-size: 12px;
+  color: #0f766e;
+  background: #ccfbf1;
+  padding: 4px 8px;
+  border-radius: 999px;
+}
+
+@media (max-width: 700px) {
+  .addRow {
+    grid-template-columns: 1fr;
+  }
+  .taskItem {
+    grid-template-columns: 1fr;
+  }
+}
