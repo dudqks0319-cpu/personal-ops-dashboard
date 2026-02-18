@@ -734,16 +734,27 @@ export default function Home() {
     setLaunchpadBusyAction("run");
 
     const launchWindow = window.open("about:blank", "_blank", "noopener,noreferrer");
-    if (!launchWindow) {
-      setLaunchpadError("팝업이 차단되어 실행할 수 없어요. 브라우저 팝업 설정을 확인해주세요.");
-      clearLaunchpadBusy();
-      return;
-    }
+
+    const closeLaunchWindow = () => {
+      if (launchWindow && !launchWindow.closed) {
+        launchWindow.close();
+      }
+    };
+
+    const openTarget = (url: string) => {
+      if (launchWindow) {
+        launchWindow.location.href = url;
+      } else {
+        window.location.assign(url);
+      }
+    };
 
     try {
-      launchWindow.document.title = "런치패드 실행 중";
-      launchWindow.document.body.innerHTML =
-        "<p style='font-family:sans-serif;padding:16px'>런치패드 실행 중...</p>";
+      if (launchWindow) {
+        launchWindow.document.title = "런치패드 실행 중";
+        launchWindow.document.body.innerHTML =
+          "<p style='font-family:sans-serif;padding:16px'>런치패드 실행 중...</p>";
+      }
 
       const result = await requestJson<LaunchpadItem>(`/api/launchpad/${item.id}`, {
         method: "PATCH",
@@ -755,26 +766,40 @@ export default function Home() {
         const recoverableError = result.status === 0 || result.status >= 500;
 
         if (recoverableError) {
-          launchWindow.location.href = item.url;
+          openTarget(item.url);
           setLaunchpadError(`실행 기록 저장에 실패했어요: ${result.error}`);
-          setLaunchpadNotice(`"${item.name}" 링크는 바로 열어드렸어요.`);
+          setLaunchpadNotice(
+            launchWindow
+              ? `"${item.name}" 링크는 바로 열어드렸어요.`
+              : `"${item.name}" 링크를 현재 탭에서 열었어요. (팝업 차단)`,
+          );
           return;
         }
 
-        launchWindow.close();
+        closeLaunchWindow();
         setLaunchpadError(`실행 실패: ${result.error}`);
         return;
       }
 
-      launchWindow.location.href = result.data.url;
-      setLaunchpadNotice(`"${result.data.name}" 실행 완료`);
-      await refresh();
+      openTarget(result.data.url);
+      setLaunchpadNotice(
+        launchWindow
+          ? `"${result.data.name}" 실행 완료`
+          : `"${result.data.name}" 실행 완료 (팝업 차단으로 현재 탭에서 열었어요).`,
+      );
+
+      if (launchWindow) {
+        await refresh();
+      }
     } catch {
       try {
-        launchWindow.location.href = item.url;
+        openTarget(item.url);
         setLaunchpadError("실행 기록 저장에는 실패했지만, 링크는 직접 열었어요.");
+        if (!launchWindow) {
+          setLaunchpadNotice(`"${item.name}" 링크를 현재 탭에서 열었어요. (팝업 차단)`);
+        }
       } catch {
-        launchWindow.close();
+        closeLaunchWindow();
         setLaunchpadError("실행 중 예기치 못한 오류가 발생했어요. 다시 시도해주세요.");
       }
     } finally {
