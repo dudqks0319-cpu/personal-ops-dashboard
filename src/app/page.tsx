@@ -22,6 +22,16 @@ type Journal = {
   createdAt: string;
 };
 
+type LaunchpadItem = {
+  id: string;
+  name: string;
+  url: string;
+  description: string;
+  enabled: boolean;
+  launchCount: number;
+  lastLaunchedAt: string | null;
+};
+
 type Stats = {
   totalTasks: number;
   doneTasks: number;
@@ -41,6 +51,7 @@ export default function Home() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [journals, setJournals] = useState<Journal[]>([]);
+  const [launchpad, setLaunchpad] = useState<LaunchpadItem[]>([]);
 
   const [input, setInput] = useState("");
   const [journalInput, setJournalInput] = useState("");
@@ -48,6 +59,11 @@ export default function Home() {
 
   const [eventTitle, setEventTitle] = useState("");
   const [eventWhen, setEventWhen] = useState("");
+
+  const [lpName, setLpName] = useState("");
+  const [lpUrl, setLpUrl] = useState("");
+  const [lpDescription, setLpDescription] = useState("");
+  const [editingLpId, setEditingLpId] = useState<string | null>(null);
 
   const [stats, setStats] = useState<Stats | null>(null);
   const [weather, setWeather] = useState<Weather | null>(null);
@@ -59,18 +75,20 @@ export default function Home() {
   }, [stats]);
 
   const refresh = async () => {
-    const [tasksRes, statsRes, weatherRes, eventsRes, journalsRes] = await Promise.all([
+    const [tasksRes, statsRes, weatherRes, eventsRes, journalsRes, launchpadRes] = await Promise.all([
       fetch("/api/tasks"),
       fetch("/api/stats"),
       fetch("/api/weather"),
       fetch("/api/events"),
       fetch("/api/journals"),
+      fetch("/api/launchpad"),
     ]);
 
     setTasks(await tasksRes.json());
     setStats(await statsRes.json());
     setEvents(await eventsRes.json());
     setJournals(await journalsRes.json());
+    setLaunchpad(await launchpadRes.json());
 
     if (weatherRes.ok) {
       setWeather(await weatherRes.json());
@@ -151,6 +169,74 @@ export default function Home() {
     await refresh();
   };
 
+  const saveLaunchpad = async () => {
+    if (!lpName.trim() || !lpUrl.trim()) return;
+
+    if (editingLpId) {
+      await fetch(`/api/launchpad/${editingLpId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: lpName, url: lpUrl, description: lpDescription }),
+      });
+    } else {
+      await fetch("/api/launchpad", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: lpName, url: lpUrl, description: lpDescription }),
+      });
+    }
+
+    setLpName("");
+    setLpUrl("");
+    setLpDescription("");
+    setEditingLpId(null);
+    await refresh();
+  };
+
+  const editLaunchpad = (item: LaunchpadItem) => {
+    setEditingLpId(item.id);
+    setLpName(item.name);
+    setLpUrl(item.url);
+    setLpDescription(item.description);
+  };
+
+  const cancelEditLaunchpad = () => {
+    setEditingLpId(null);
+    setLpName("");
+    setLpUrl("");
+    setLpDescription("");
+  };
+
+  const removeLaunchpad = async (id: string) => {
+    await fetch(`/api/launchpad/${id}`, { method: "DELETE" });
+    if (editingLpId === id) {
+      cancelEditLaunchpad();
+    }
+    await refresh();
+  };
+
+  const toggleLaunchpadEnabled = async (item: LaunchpadItem) => {
+    await fetch(`/api/launchpad/${item.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ enabled: !item.enabled }),
+    });
+    await refresh();
+  };
+
+  const runLaunchpad = async (item: LaunchpadItem) => {
+    if (!item.enabled) return;
+
+    await fetch(`/api/launchpad/${item.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "launch" }),
+    });
+
+    window.open(item.url, "_blank", "noopener,noreferrer");
+    await refresh();
+  };
+
   return (
     <main className={styles.page}>
       <h1>개인 운영 대시보드</h1>
@@ -193,6 +279,64 @@ export default function Home() {
           ) : (
             <p>날씨 정보를 불러오는 중...</p>
           )}
+        </div>
+      </section>
+
+      <section className={styles.card}>
+        <h2>런치패드</h2>
+        <div className={styles.addRowLaunchpad}>
+          <input
+            placeholder="도구 이름 (예: Github Issues)"
+            value={lpName}
+            onChange={(e) => setLpName(e.target.value)}
+          />
+          <input
+            placeholder="https://..."
+            value={lpUrl}
+            onChange={(e) => setLpUrl(e.target.value)}
+          />
+          <input
+            placeholder="설명 (선택)"
+            value={lpDescription}
+            onChange={(e) => setLpDescription(e.target.value)}
+          />
+          <button onClick={saveLaunchpad}>{editingLpId ? "수정 저장" : "추가"}</button>
+          {editingLpId && (
+            <button onClick={cancelEditLaunchpad} className={styles.secondaryButton}>
+              수정 취소
+            </button>
+          )}
+        </div>
+
+        <div className={styles.tasks}>
+          {launchpad.length === 0 && <p>런치패드 항목이 없습니다. 자주 여는 링크를 등록해보세요.</p>}
+          {launchpad.map((item) => (
+            <div key={item.id} className={styles.taskItem}>
+              <div>
+                <b>{item.name}</b>
+                <p className={styles.eventTime}>{item.description || "설명 없음"}</p>
+                <p className={styles.linkLine}>
+                  <a href={item.url} target="_blank" rel="noreferrer">
+                    {item.url}
+                  </a>
+                </p>
+                <p className={styles.eventTime}>
+                  실행 {item.launchCount}회 · 최근 실행 {item.lastLaunchedAt ? new Date(item.lastLaunchedAt).toLocaleString("ko-KR") : "없음"}
+                </p>
+              </div>
+              <span className={`${styles.priority} ${item.enabled ? styles.activeStatus : styles.inactiveStatus}`}>
+                {item.enabled ? "활성" : "비활성"}
+              </span>
+              <div className={styles.rowActions}>
+                <button disabled={!item.enabled} onClick={() => runLaunchpad(item)}>
+                  실행
+                </button>
+                <button onClick={() => toggleLaunchpadEnabled(item)}>{item.enabled ? "비활성화" : "활성화"}</button>
+                <button onClick={() => editLaunchpad(item)}>수정</button>
+                <button onClick={() => removeLaunchpad(item.id)}>삭제</button>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 

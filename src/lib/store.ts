@@ -28,11 +28,24 @@ export type CalendarEvent = {
   createdAt: string;
 };
 
-type DashboardData = {
+export type LaunchpadItem = {
+  id: string;
+  name: string;
+  url: string;
+  description: string;
+  enabled: boolean;
+  launchCount: number;
+  lastLaunchedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type DashboardData = {
   tasks: Task[];
   focusSessions: FocusSession[];
   journals: Journal[];
   events: CalendarEvent[];
+  launchpad: LaunchpadItem[];
 };
 
 const dataDir = path.join(process.cwd(), "data");
@@ -43,12 +56,25 @@ const defaultData: DashboardData = {
   focusSessions: [],
   journals: [],
   events: [],
+  launchpad: [],
 };
+
+function normalizeData(raw: unknown): DashboardData {
+  const candidate = (raw ?? {}) as Partial<DashboardData>;
+
+  return {
+    tasks: Array.isArray(candidate.tasks) ? candidate.tasks : [],
+    focusSessions: Array.isArray(candidate.focusSessions) ? candidate.focusSessions : [],
+    journals: Array.isArray(candidate.journals) ? candidate.journals : [],
+    events: Array.isArray(candidate.events) ? candidate.events : [],
+    launchpad: Array.isArray(candidate.launchpad) ? candidate.launchpad : [],
+  };
+}
 
 export async function readData(): Promise<DashboardData> {
   try {
     const raw = await fs.readFile(dataFile, "utf-8");
-    return JSON.parse(raw) as DashboardData;
+    return normalizeData(JSON.parse(raw));
   } catch {
     await fs.mkdir(dataDir, { recursive: true });
     await fs.writeFile(dataFile, JSON.stringify(defaultData, null, 2), "utf-8");

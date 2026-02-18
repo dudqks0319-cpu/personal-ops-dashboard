@@ -1,25 +1,40 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readData, writeData } from "@/lib/store";
 
-type Params = { params: Promise<{ id: string }> };
-
-export async function PATCH(req: NextRequest, { params }: Params) {
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
   const { id } = await params;
   const body = await req.json();
   const data = await readData();
+  const task = data.tasks.find((item) => item.id === id);
 
-  const idx = data.tasks.findIndex((t) => t.id === id);
-  if (idx < 0) return NextResponse.json({ error: "not found" }, { status: 404 });
+  if (!task) {
+    return NextResponse.json({ error: "task not found" }, { status: 404 });
+  }
 
-  data.tasks[idx] = { ...data.tasks[idx], ...body };
+  if (typeof body?.done === "boolean") {
+    task.done = body.done;
+  }
+
   await writeData(data);
-  return NextResponse.json(data.tasks[idx]);
+  return NextResponse.json(task);
 }
 
-export async function DELETE(_: NextRequest, { params }: Params) {
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
   const { id } = await params;
   const data = await readData();
-  data.tasks = data.tasks.filter((t) => t.id !== id);
+  const prevLength = data.tasks.length;
+  data.tasks = data.tasks.filter((item) => item.id !== id);
+
+  if (data.tasks.length === prevLength) {
+    return NextResponse.json({ error: "task not found" }, { status: 404 });
+  }
+
   await writeData(data);
   return NextResponse.json({ ok: true });
 }
