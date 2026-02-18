@@ -211,6 +211,42 @@
   margin: -4px 0 10px;
 }
 
+.launchpadFilterRow {
+  display: grid;
+  grid-template-columns: 1fr 130px auto;
+  gap: 10px;
+  align-items: center;
+  margin: 0 0 10px;
+}
+
+.launchpadSearchInput,
+.launchpadFilterSelect {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 10px 12px;
+}
+
+.launchpadSearchInput:focus,
+.launchpadFilterSelect:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.15);
+}
+
+.launchpadCountText {
+  font-size: 12px;
+  color: var(--muted);
+  justify-self: end;
+  white-space: nowrap;
+}
+
+.syncText {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
 .noticeText,
 .errorText {
   margin: 0 0 10px;
@@ -314,8 +350,13 @@
   .addRowJournal,
   .addRowLaunchpad,
   .addRowCalendar,
+  .launchpadFilterRow,
   .taskItem {
     grid-template-columns: 1fr;
+  }
+
+  .launchpadCountText {
+    justify-self: start;
   }
 
   .sectionHeader {
