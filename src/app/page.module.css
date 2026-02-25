@@ -241,6 +241,91 @@
   background: #dbeafe;
 }
 
+.priorityHigh {
+  color: #9f1239;
+  background: #ffe4e6;
+}
+
+.priorityMedium {
+  color: #92400e;
+  background: #fef3c7;
+}
+
+.priorityLow {
+  color: #065f46;
+  background: #d1fae5;
+}
+
+.clearCompletedBtn {
+  margin-top: 10px;
+  width: 100%;
+  padding: 10px;
+  border: 1px dashed rgba(15, 23, 42, 0.15);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 13px;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.clearCompletedBtn:hover {
+  background: rgba(255, 241, 242, 0.8);
+  color: #9f1239;
+  border-color: #fecdd3;
+  transform: none;
+}
+
+.repoGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.repoCard {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 14px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.78);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  color: inherit;
+}
+
+.repoCard:hover {
+  transform: translateY(-2px);
+  border-color: rgba(10, 132, 255, 0.3);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+}
+
+.repoCardName {
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--accent);
+  word-break: break-all;
+}
+
+.repoCardDesc {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+  flex: 1;
+}
+
+.repoCardMeta {
+  display: flex;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
 .launchpadFilterRow {
   display: grid;
   grid-template-columns: 1fr 130px auto;

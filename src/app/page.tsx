@@ -374,32 +374,43 @@ export default function DashboardPage() {
               marginBottom: 8,
             }}
           >
-            {WEEKDAY_KO.map((day) => (
+            {WEEKDAY_KO.map((day, idx) => (
               <div
                 key={day}
-                style={{ textAlign: "center", color: "var(--muted)", fontSize: 13, fontWeight: 600 }}
+                style={{
+                  textAlign: "center",
+                  color: idx === 0 ? "#ef4444" : idx === 6 ? "#3b82f6" : "var(--muted)",
+                  fontSize: 13,
+                  fontWeight: 600,
+                }}
               >
                 {day}
               </div>
             ))}
-            {calendarCells.map((cell, index) => (
-              <div
-                key={`${cell.day}-${index}`}
-                style={{
-                  minHeight: 34,
-                  borderRadius: 10,
-                  border: "1px solid rgba(15, 23, 42, 0.08)",
-                  background: cell.isToday ? "#dbeafe" : "rgba(255,255,255,0.78)",
-                  color: cell.inCurrentMonth ? "var(--text)" : "var(--muted)",
-                  opacity: cell.inCurrentMonth ? 1 : 0.65,
-                  display: "grid",
-                  placeItems: "center",
-                  fontWeight: cell.isToday ? 700 : 500,
-                }}
-              >
-                {cell.day}
-              </div>
-            ))}
+            {calendarCells.map((cell, index) => {
+              const colIndex = index % 7;
+              const isSunday = colIndex === 0;
+              const isSaturday = colIndex === 6;
+              const weekendColor = isSunday ? "#ef4444" : isSaturday ? "#3b82f6" : "var(--text)";
+              return (
+                <div
+                  key={`${cell.day}-${index}`}
+                  style={{
+                    minHeight: 34,
+                    borderRadius: 10,
+                    border: "1px solid rgba(15, 23, 42, 0.08)",
+                    background: cell.isToday ? "#dbeafe" : "rgba(255,255,255,0.78)",
+                    color: cell.inCurrentMonth ? weekendColor : "var(--muted)",
+                    opacity: cell.inCurrentMonth ? 1 : 0.65,
+                    display: "grid",
+                    placeItems: "center",
+                    fontWeight: cell.isToday ? 700 : 500,
+                  }}
+                >
+                  {cell.day}
+                </div>
+              );
+            })}
           </div>
         </section>
 
@@ -439,7 +450,15 @@ export default function DashboardPage() {
                     <input type="checkbox" checked={todo.done} onChange={() => toggleTodo(todo.id)} />
                     <span className={todo.done ? styles.done : ""}>{todo.text}</span>
                   </label>
-                  <span className={styles.priority}>
+                  <span
+                    className={`${styles.priority} ${
+                      todo.priority === "high"
+                        ? styles.priorityHigh
+                        : todo.priority === "low"
+                          ? styles.priorityLow
+                          : styles.priorityMedium
+                    }`}
+                  >
                     {todo.priority === "high" ? "높음" : todo.priority === "low" ? "낮음" : "보통"}
                   </span>
                   <button onClick={() => deleteTodo(todo.id)}>삭제</button>
@@ -447,6 +466,14 @@ export default function DashboardPage() {
               ))
             )}
           </div>
+          {todos.some((todo) => todo.done) && (
+            <button
+              className={styles.clearCompletedBtn}
+              onClick={() => setTodos((prev) => prev.filter((t) => !t.done))}
+            >
+              완료된 항목 모두 삭제
+            </button>
+          )}
         </section>
 
         <section className={styles.card}>
@@ -533,23 +560,32 @@ export default function DashboardPage() {
         {repoError && <p className={styles.errorText}>{repoError}</p>}
 
         {!isRepoLoading && !repoError && (
-          <ul style={{ marginLeft: 18, lineHeight: 1.8 }}>
+          <>
             {repos.length === 0 ? (
-              <li>표시할 저장소가 없습니다.</li>
+              <p style={{ color: "var(--muted)" }}>표시할 저장소가 없습니다.</p>
             ) : (
-              repos.map((repo) => (
-                <li key={repo.id}>
-                  <a href={repo.htmlUrl} target="_blank" rel="noreferrer">
-                    {repo.name}
+              <div className={styles.repoGrid}>
+                {repos.map((repo) => (
+                  <a
+                    key={repo.id}
+                    href={repo.htmlUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={styles.repoCard}
+                  >
+                    <div className={styles.repoCardName}>{repo.name}</div>
+                    {repo.description && (
+                      <div className={styles.repoCardDesc}>{repo.description}</div>
+                    )}
+                    <div className={styles.repoCardMeta}>
+                      <span>⭐ {repo.stars}</span>
+                      <span>업데이트 {new Date(repo.updatedAt).toLocaleDateString("ko-KR")}</span>
+                    </div>
                   </a>
-                  <div className={styles.eventTime}>
-                    ⭐ {repo.stars} · 업데이트 {new Date(repo.updatedAt).toLocaleDateString("ko-KR")}
-                  </div>
-                  {repo.description && <div className={styles.helperText}>{repo.description}</div>}
-                </li>
-              ))
+                ))}
+              </div>
             )}
-          </ul>
+          </>
         )}
       </section>
     </main>
