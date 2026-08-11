@@ -1,6 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import {
+  type FormEvent,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import {
   calculateGoalProgress,
   getMonthKey,
@@ -8,39 +13,76 @@ import {
   type MonthlyGoalItem,
   type MonthlyGoalsByMonth,
 } from "@/lib/monthlyGoals";
+import {
+  CHECKLIST_BUCKET_LABELS,
+  DDAY_KIND_LABELS,
+  FOCUS_END_DATE_KEY,
+  FOCUS_START_DATE_KEY,
+  NIGHT_SHIFT_ANCHOR_DATE_KEY,
+  SCHEDULE_CATEGORY_LABELS,
+  SHIFT_LABELS,
+  calculateProgress,
+  cloneDefaultChecklist,
+  cloneDefaultDdays,
+  cloneDefaultMilestones,
+  cloneDefaultSchedules,
+  formatDateKeyKo,
+  getDateKey,
+  getDdayStatus,
+  getShiftModeForDate,
+  getWeekDates,
+  normalizeStoredChecklist,
+  normalizeStoredChecklistByDate,
+  normalizeStoredCompletionByDate,
+  normalizeStoredDdays,
+  normalizeStoredMilestones,
+  normalizeStoredSchedule,
+  normalizeStoredSchedules,
+  normalizeStoredShiftOverrides,
+  parseDateKey,
+  sortDdaysByNextOccurrence,
+  type ChecklistBucket,
+  type ChecklistItem,
+  type DdayItem,
+  type DdayKind,
+  type DdayRepeat,
+  type FocusMilestone,
+  type ScheduleBlock,
+  type ScheduleCategory,
+  type ShiftMode,
+} from "@/lib/lifeOs";
 import styles from "./page.module.css";
 
-type Priority = "high" | "medium" | "low";
-
-type TodoItem = {
-  id: string;
-  text: string;
-  done: boolean;
-  priority: Priority;
-};
-
-type GithubRepo = {
-  id: number;
-  name: string;
-  htmlUrl: string;
-  description: string;
-  stars: number;
-  updatedAt: string;
-};
-
-type CalendarCell = {
-  day: number;
-  inCurrentMonth: boolean;
-  isToday: boolean;
-};
-
-const TODOS_STORAGE_KEY = "personal_dashboard_todos";
-const GITHUB_USER_STORAGE_KEY = "personal_dashboard_github_user";
+const LEGACY_TODOS_STORAGE_KEY = "personal_dashboard_todos";
+const CHECKLIST_STORAGE_KEY = "personal_life_os_checklists_by_date_v1";
+const MILESTONES_STORAGE_KEY = "personal_life_os_jipbab_milestones_v1";
+const SCHEDULES_STORAGE_KEY = "personal_life_os_schedules_v1";
+const SCHEDULE_COMPLETION_STORAGE_KEY = "personal_life_os_schedule_completion_v1";
+const SHIFT_OVERRIDES_STORAGE_KEY = "personal_life_os_shift_overrides_v1";
+const DDAYS_STORAGE_KEY = "personal_life_os_ddays_v1";
 const MONTHLY_GOALS_STORAGE_KEY = "personal_dashboard_monthly_goals_by_month";
-const DEFAULT_GITHUB_USER = "dudqks0319-cpu";
-const WEEKDAY_KO = ["일", "월", "화", "수", "목", "금", "토"];
 
-function formatDateWithWeekday(date: Date): string {
+const JIPBAB_REPOSITORY_URL = "https://github.com/dudqks0319-cpu/jipbab-note";
+const JIPBAB_RELEASE_PR_URL = "https://github.com/dudqks0319-cpu/jipbab-note/pull/9";
+
+const BUCKET_DESCRIPTIONS: Record<ChecklistBucket, string> = {
+  must: "오늘 반드시 끝낼 것 · 최대 3개",
+  should: "여력이 있으면 진행할 것",
+  notToday: "오늘 하지 않기로 정한 것",
+};
+
+const SCHEDULE_MODE_OPTIONS: Array<{ value: ShiftMode | "auto"; label: string }> = [
+  { value: "auto", label: "근무표 자동" },
+  { value: "day", label: "주간근무" },
+  { value: "night", label: "야간근무" },
+  { value: "off", label: "휴무" },
+];
+
+function createLocalId(prefix: string): string {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function formatNow(date: Date): string {
   return date.toLocaleDateString("ko-KR", {
     year: "numeric",
     month: "long",
@@ -49,130 +91,135 @@ function formatDateWithWeekday(date: Date): string {
   });
 }
 
-function formatTime(date: Date): string {
+function formatClock(date: Date): string {
   return date.toLocaleTimeString("ko-KR", {
     hour: "2-digit",
     minute: "2-digit",
-    second: "2-digit",
     hour12: false,
   });
 }
 
-function buildCalendarCells(referenceDate: Date): CalendarCell[] {
-  const year = referenceDate.getFullYear();
-  const month = referenceDate.getMonth();
-  const firstDayWeekIndex = new Date(year, month, 1).getDay();
-  const daysInCurrentMonth = new Date(year, month + 1, 0).getDate();
-  const daysInPreviousMonth = new Date(year, month, 0).getDate();
-  const today = new Date();
-
-  const cells: CalendarCell[] = [];
-
-  for (let i = firstDayWeekIndex - 1; i >= 0; i -= 1) {
-    cells.push({
-      day: daysInPreviousMonth - i,
-      inCurrentMonth: false,
-      isToday: false,
-    });
-  }
-
-  for (let day = 1; day <= daysInCurrentMonth; day += 1) {
-    const isToday =
-      today.getFullYear() === year &&
-      today.getMonth() === month &&
-      today.getDate() === day;
-
-    cells.push({
-      day,
-      inCurrentMonth: true,
-      isToday,
-    });
-  }
-
-  while (cells.length < 42) {
-    cells.push({
-      day: cells.length - (firstDayWeekIndex + daysInCurrentMonth) + 1,
-      inCurrentMonth: false,
-      isToday: false,
-    });
-  }
-
-  return cells;
+function ProgressBar({ value, label }: { value: number; label: string }) {
+  return (
+    <div className={styles.progressGroup}>
+      <div
+        className={styles.progressTrack}
+        role="progressbar"
+        aria-label={label}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={value}
+      >
+        <span className={styles.progressFill} style={{ width: `${value}%` }} />
+      </div>
+      <span className={styles.progressValue}>{value}%</span>
+    </div>
+  );
 }
 
-function normalizeStoredTodos(raw: unknown): TodoItem[] {
-  if (!Array.isArray(raw)) return [];
-
-  return raw.flatMap((item) => {
-    if (!item || typeof item !== "object") return [];
-    const record = item as Record<string, unknown>;
-
-    const text = typeof record.text === "string" ? record.text.trim() : "";
-    if (!text) return [];
-
-    const priority =
-      record.priority === "high" || record.priority === "low" || record.priority === "medium"
-        ? record.priority
-        : "medium";
-
-    const id =
-      typeof record.id === "string" && record.id.trim()
-        ? record.id
-        : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-
-    return [
-      {
-        id,
-        text,
-        done: Boolean(record.done),
-        priority,
-      },
-    ];
-  });
+function EmptyMessage({ children }: { children?: React.ReactNode }) {
+  return <p className={styles.emptyMessage}>{children}</p>;
 }
 
 export default function DashboardPage() {
-  const [now, setNow] = useState(() => new Date());
-  const [todoInput, setTodoInput] = useState("");
-  const [todoPriority, setTodoPriority] = useState<Priority>("medium");
-  const [todos, setTodos] = useState<TodoItem[]>([]);
+  const [now, setNow] = useState<Date | null>(null);
+  const [selectedDateKey, setSelectedDateKey] = useState("");
   const [isHydrated, setIsHydrated] = useState(false);
+
+  const [checklistsByDate, setChecklistsByDate] = useState<Record<string, ChecklistItem[]>>({});
+  const [checklistInput, setChecklistInput] = useState("");
+  const [checklistBucket, setChecklistBucket] = useState<ChecklistBucket>("must");
+  const [checklistNotice, setChecklistNotice] = useState("");
+
+  const [milestones, setMilestones] = useState<FocusMilestone[]>(() => cloneDefaultMilestones());
+  const [schedules, setSchedules] = useState<Record<ShiftMode, ScheduleBlock[]>>(() =>
+    cloneDefaultSchedules(),
+  );
+  const [scheduleCompletionByDate, setScheduleCompletionByDate] = useState<Record<string, string[]>>(
+    {},
+  );
+  const [shiftOverrides, setShiftOverrides] = useState<Record<string, ShiftMode>>({});
+  const [scheduleEditingId, setScheduleEditingId] = useState<string | null>(null);
+  const [scheduleTitle, setScheduleTitle] = useState("");
+  const [scheduleStart, setScheduleStart] = useState("18:00");
+  const [scheduleEnd, setScheduleEnd] = useState("19:00");
+  const [scheduleCategory, setScheduleCategory] = useState<ScheduleCategory>("focus");
+
+  const [ddays, setDdays] = useState<DdayItem[]>(() => cloneDefaultDdays());
+  const [ddayTitle, setDdayTitle] = useState("");
+  const [ddayDate, setDdayDate] = useState("");
+  const [ddayKind, setDdayKind] = useState<DdayKind>("general");
+  const [ddayRepeat, setDdayRepeat] = useState<DdayRepeat>("none");
 
   const [goalInput, setGoalInput] = useState("");
   const [monthlyGoalsByMonth, setMonthlyGoalsByMonth] = useState<MonthlyGoalsByMonth>({});
 
-  const [githubUserInput, setGithubUserInput] = useState(DEFAULT_GITHUB_USER);
-  const [githubUser, setGithubUser] = useState(DEFAULT_GITHUB_USER);
-  const [repos, setRepos] = useState<GithubRepo[]>([]);
-  const [isRepoLoading, setIsRepoLoading] = useState(false);
-  const [repoError, setRepoError] = useState("");
-
   useEffect(() => {
-    const timer = window.setInterval(() => setNow(new Date()), 1000);
+    const tick = () => setNow(new Date());
+    tick();
+    const timer = window.setInterval(tick, 30_000);
     return () => window.clearInterval(timer);
   }, []);
 
   useEffect(() => {
+    const currentDate = new Date();
+    const currentDateKey = getDateKey(currentDate);
+    setSelectedDateKey(currentDateKey);
+
     try {
-      const savedTodos = localStorage.getItem(TODOS_STORAGE_KEY);
-      if (savedTodos) {
-        const parsed = JSON.parse(savedTodos) as unknown;
-        setTodos(normalizeStoredTodos(parsed));
+      const savedChecklists = localStorage.getItem(CHECKLIST_STORAGE_KEY);
+      if (savedChecklists) {
+        setChecklistsByDate(normalizeStoredChecklistByDate(JSON.parse(savedChecklists) as unknown));
+      } else {
+        const legacyTodos = localStorage.getItem(LEGACY_TODOS_STORAGE_KEY);
+        const migratedTodos = legacyTodos
+          ? normalizeStoredChecklist(JSON.parse(legacyTodos) as unknown)
+          : cloneDefaultChecklist();
+        setChecklistsByDate({ [currentDateKey]: migratedTodos });
+      }
+
+      const savedMilestones = localStorage.getItem(MILESTONES_STORAGE_KEY);
+      if (savedMilestones) {
+        const normalized = normalizeStoredMilestones(JSON.parse(savedMilestones) as unknown);
+        setMilestones(normalized.length > 0 ? normalized : cloneDefaultMilestones());
+      }
+
+      const savedSchedules = localStorage.getItem(SCHEDULES_STORAGE_KEY);
+      if (savedSchedules) {
+        setSchedules(normalizeStoredSchedules(JSON.parse(savedSchedules) as unknown));
+      }
+
+      const savedScheduleCompletion = localStorage.getItem(SCHEDULE_COMPLETION_STORAGE_KEY);
+      if (savedScheduleCompletion) {
+        setScheduleCompletionByDate(
+          normalizeStoredCompletionByDate(JSON.parse(savedScheduleCompletion) as unknown),
+        );
+      }
+
+      const savedShiftOverrides = localStorage.getItem(SHIFT_OVERRIDES_STORAGE_KEY);
+      if (savedShiftOverrides) {
+        setShiftOverrides(normalizeStoredShiftOverrides(JSON.parse(savedShiftOverrides) as unknown));
+      }
+
+      const savedDdays = localStorage.getItem(DDAYS_STORAGE_KEY);
+      if (savedDdays) {
+        const normalized = normalizeStoredDdays(JSON.parse(savedDdays) as unknown);
+        setDdays(normalized);
       }
 
       const savedMonthlyGoals = localStorage.getItem(MONTHLY_GOALS_STORAGE_KEY);
       if (savedMonthlyGoals) {
-        const parsed = JSON.parse(savedMonthlyGoals) as unknown;
-        setMonthlyGoalsByMonth(normalizeStoredMonthlyGoals(parsed));
-      }
-
-      const savedGithubUser = localStorage.getItem(GITHUB_USER_STORAGE_KEY);
-      if (savedGithubUser && savedGithubUser.trim()) {
-        setGithubUser(savedGithubUser.trim());
-        setGithubUserInput(savedGithubUser.trim());
+        setMonthlyGoalsByMonth(
+          normalizeStoredMonthlyGoals(JSON.parse(savedMonthlyGoals) as unknown),
+        );
       }
     } catch {
-      setTodos([]);
+      setChecklistsByDate({ [currentDateKey]: cloneDefaultChecklist() });
+      setMilestones(cloneDefaultMilestones());
+      setSchedules(cloneDefaultSchedules());
+      setScheduleCompletionByDate({});
+      setShiftOverrides({});
+      setDdays(cloneDefaultDdays());
       setMonthlyGoalsByMonth({});
     } finally {
       setIsHydrated(true);
@@ -181,326 +228,690 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!isHydrated) return;
-    localStorage.setItem(TODOS_STORAGE_KEY, JSON.stringify(todos));
-  }, [todos, isHydrated]);
-
-  useEffect(() => {
-    if (!isHydrated) return;
+    localStorage.setItem(CHECKLIST_STORAGE_KEY, JSON.stringify(checklistsByDate));
+    localStorage.setItem(MILESTONES_STORAGE_KEY, JSON.stringify(milestones));
+    localStorage.setItem(SCHEDULES_STORAGE_KEY, JSON.stringify(schedules));
+    localStorage.setItem(SCHEDULE_COMPLETION_STORAGE_KEY, JSON.stringify(scheduleCompletionByDate));
+    localStorage.setItem(SHIFT_OVERRIDES_STORAGE_KEY, JSON.stringify(shiftOverrides));
+    localStorage.setItem(DDAYS_STORAGE_KEY, JSON.stringify(ddays));
     localStorage.setItem(MONTHLY_GOALS_STORAGE_KEY, JSON.stringify(monthlyGoalsByMonth));
-  }, [monthlyGoalsByMonth, isHydrated]);
+  }, [
+    checklistsByDate,
+    ddays,
+    isHydrated,
+    milestones,
+    monthlyGoalsByMonth,
+    scheduleCompletionByDate,
+    schedules,
+    shiftOverrides,
+  ]);
 
-  useEffect(() => {
-    if (!isHydrated) return;
-    localStorage.setItem(GITHUB_USER_STORAGE_KEY, githubUser);
-  }, [githubUser, isHydrated]);
+  const fallbackDate = useMemo(() => new Date(2026, 7, 11, 12), []);
+  const todayDate = now ?? fallbackDate;
+  const todayKey = getDateKey(todayDate);
+  const activeDateKey = selectedDateKey || todayKey;
+  const activeDate = parseDateKey(activeDateKey) ?? todayDate;
+  const shiftAnchor = parseDateKey(NIGHT_SHIFT_ANCHOR_DATE_KEY) ?? fallbackDate;
+  const automaticShiftMode = getShiftModeForDate(activeDate, shiftAnchor);
+  const activeShiftMode = shiftOverrides[activeDateKey] ?? automaticShiftMode;
+  const activeChecklist = checklistsByDate[activeDateKey] ?? [];
+  const activeSchedule = schedules[activeShiftMode];
+  const completedScheduleIds = useMemo(
+    () => new Set(scheduleCompletionByDate[activeDateKey] ?? []),
+    [activeDateKey, scheduleCompletionByDate],
+  );
 
-  useEffect(() => {
-    const controller = new AbortController();
+  const weekDates = useMemo(() => getWeekDates(todayDate), [todayDate]);
+  const focusProgress = calculateProgress(milestones);
+  const focusDday = getDdayStatus(FOCUS_END_DATE_KEY, "none", todayDate);
+  const checklistProgress = calculateProgress(activeChecklist);
+  const scheduleProgress = calculateProgress(
+    activeSchedule.map((item) => ({ done: completedScheduleIds.has(item.id) })),
+  );
+  const sortedDdays = useMemo(
+    () => sortDdaysByNextOccurrence(ddays, todayDate),
+    [ddays, todayDate],
+  );
 
-    const loadRepos = async () => {
-      setIsRepoLoading(true);
-      setRepoError("");
+  const activeMonthKey = getMonthKey(activeDate);
+  const activeMonthGoals = monthlyGoalsByMonth[activeMonthKey] ?? [];
+  const activeMonthGoalProgress = calculateGoalProgress(activeMonthGoals);
 
-      try {
-        const response = await fetch(
-          `https://api.github.com/users/${encodeURIComponent(githubUser)}/repos?sort=updated&per_page=12`,
-          {
-            signal: controller.signal,
-            headers: {
-              Accept: "application/vnd.github+json",
-            },
-          },
-        );
+  const todayShiftMode =
+    shiftOverrides[todayKey] ?? getShiftModeForDate(todayDate, shiftAnchor);
 
-        if (!response.ok) {
-          throw new Error("GitHub 저장소 목록을 불러오지 못했습니다.");
-        }
+  const updateActiveChecklist = (updater: (items: ChecklistItem[]) => ChecklistItem[]) => {
+    setChecklistsByDate((previous) => ({
+      ...previous,
+      [activeDateKey]: updater(previous[activeDateKey] ?? []),
+    }));
+  };
 
-        const payload = (await response.json()) as unknown;
-        if (!Array.isArray(payload)) {
-          throw new Error("GitHub 응답 형식이 올바르지 않습니다.");
-        }
+  const addChecklistItem = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const text = checklistInput.trim();
+    if (!text) return;
 
-        const nextRepos: GithubRepo[] = payload.flatMap((item) => {
-          if (!item || typeof item !== "object") return [];
-          const record = item as Record<string, unknown>;
+    const openMustCount = activeChecklist.filter(
+      (item) => item.bucket === "must" && !item.done,
+    ).length;
+    if (checklistBucket === "must" && openMustCount >= 3) {
+      setChecklistNotice("TODAY MUST는 미완료 항목을 최대 3개만 유지합니다.");
+      return;
+    }
 
-          if (
-            typeof record.id !== "number" ||
-            typeof record.name !== "string" ||
-            typeof record.html_url !== "string" ||
-            typeof record.updated_at !== "string"
-          ) {
-            return [];
-          }
+    const priority = checklistBucket === "must" ? "high" : checklistBucket === "should" ? "medium" : "low";
+    updateActiveChecklist((items) => [
+      ...items,
+      {
+        id: createLocalId("check"),
+        text,
+        done: false,
+        priority,
+        bucket: checklistBucket,
+      },
+    ]);
+    setChecklistInput("");
+    setChecklistNotice("");
+  };
 
-          return [
-            {
-              id: record.id,
-              name: record.name,
-              htmlUrl: record.html_url,
-              description: typeof record.description === "string" ? record.description : "",
-              stars: typeof record.stargazers_count === "number" ? record.stargazers_count : 0,
-              updatedAt: record.updated_at,
-            },
-          ];
-        });
+  const toggleChecklistItem = (id: string) => {
+    updateActiveChecklist((items) =>
+      items.map((item) => (item.id === id ? { ...item, done: !item.done } : item)),
+    );
+  };
 
-        setRepos(nextRepos);
-      } catch (error) {
-        if ((error as Error).name === "AbortError") return;
-        setRepoError("저장소를 불러오지 못했습니다. 사용자명 또는 네트워크를 확인해주세요.");
-        setRepos([]);
-      } finally {
-        setIsRepoLoading(false);
-      }
-    };
+  const deleteChecklistItem = (id: string) => {
+    updateActiveChecklist((items) => items.filter((item) => item.id !== id));
+  };
 
-    void loadRepos();
-    return () => controller.abort();
-  }, [githubUser]);
+  const loadDefaultChecklist = () => {
+    const hasItems = activeChecklist.length > 0;
+    if (hasItems && !window.confirm("이 날짜의 체크리스트를 기본값으로 바꿀까요?")) return;
+    setChecklistsByDate((previous) => ({
+      ...previous,
+      [activeDateKey]: cloneDefaultChecklist(),
+    }));
+    setChecklistNotice("");
+  };
 
-  const monthLabel = now.toLocaleDateString("ko-KR", {
-    year: "numeric",
-    month: "long",
-  });
+  const toggleMilestone = (id: string) => {
+    setMilestones((previous) =>
+      previous.map((item) => (item.id === id ? { ...item, done: !item.done } : item)),
+    );
+  };
 
-  const currentMonthKey = getMonthKey(now);
-  const currentMonthGoals = monthlyGoalsByMonth[currentMonthKey] ?? [];
-  const currentMonthGoalProgress = calculateGoalProgress(currentMonthGoals);
-  const calendarCells = buildCalendarCells(now);
-
-  const updateCurrentMonthGoals = (updater: (goals: MonthlyGoalItem[]) => MonthlyGoalItem[]) => {
-    setMonthlyGoalsByMonth((prev) => {
-      const currentGoals = prev[currentMonthKey] ?? [];
-      const nextGoals = updater(currentGoals);
-
-      if (nextGoals.length === 0) {
-        const { [currentMonthKey]: removed, ...rest } = prev;
+  const updateShiftOverride = (value: ShiftMode | "auto") => {
+    setShiftOverrides((previous) => {
+      if (value === "auto") {
+        const { [activeDateKey]: removed, ...rest } = previous;
         void removed;
         return rest;
       }
+      return { ...previous, [activeDateKey]: value };
+    });
+    setScheduleEditingId(null);
+    setScheduleTitle("");
+  };
 
+  const saveScheduleBlock = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const title = scheduleTitle.trim();
+    if (!title) return;
+
+    const nextItem: ScheduleBlock = {
+      id: scheduleEditingId ?? createLocalId("schedule"),
+      title,
+      start: scheduleStart,
+      end: scheduleEnd,
+      category: scheduleCategory,
+    };
+
+    setSchedules((previous) => {
+      const current = previous[activeShiftMode].filter((item) => item.id !== nextItem.id);
       return {
-        ...prev,
-        [currentMonthKey]: nextGoals,
+        ...previous,
+        [activeShiftMode]: normalizeStoredSchedule([...current, nextItem]),
       };
+    });
+
+    setScheduleEditingId(null);
+    setScheduleTitle("");
+    setScheduleStart("18:00");
+    setScheduleEnd("19:00");
+    setScheduleCategory("focus");
+  };
+
+  const editScheduleBlock = (item: ScheduleBlock) => {
+    setScheduleEditingId(item.id);
+    setScheduleTitle(item.title);
+    setScheduleStart(item.start);
+    setScheduleEnd(item.end);
+    setScheduleCategory(item.category);
+  };
+
+  const deleteScheduleBlock = (id: string) => {
+    setSchedules((previous) => ({
+      ...previous,
+      [activeShiftMode]: previous[activeShiftMode].filter((item) => item.id !== id),
+    }));
+    setScheduleCompletionByDate((previous) => ({
+      ...previous,
+      [activeDateKey]: (previous[activeDateKey] ?? []).filter((itemId) => itemId !== id),
+    }));
+    if (scheduleEditingId === id) {
+      setScheduleEditingId(null);
+      setScheduleTitle("");
+    }
+  };
+
+  const resetScheduleTemplate = () => {
+    if (!window.confirm(`${SHIFT_LABELS[activeShiftMode]} 시간표를 초기 예시로 되돌릴까요?`)) return;
+    const defaults = cloneDefaultSchedules();
+    setSchedules((previous) => ({ ...previous, [activeShiftMode]: defaults[activeShiftMode] }));
+    setScheduleCompletionByDate((previous) => ({ ...previous, [activeDateKey]: [] }));
+    setScheduleEditingId(null);
+    setScheduleTitle("");
+  };
+
+  const toggleScheduleCompletion = (id: string) => {
+    setScheduleCompletionByDate((previous) => {
+      const current = new Set(previous[activeDateKey] ?? []);
+      if (current.has(id)) current.delete(id);
+      else current.add(id);
+      return { ...previous, [activeDateKey]: Array.from(current) };
     });
   };
 
-  const addTodo = () => {
-    const text = todoInput.trim();
-    if (!text) return;
+  const addDday = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const title = ddayTitle.trim();
+    if (!title || !parseDateKey(ddayDate)) return;
 
-    setTodos((prev) => [
+    const next = normalizeStoredDdays([
+      ...ddays,
       {
-        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        text,
-        done: false,
-        priority: todoPriority,
+        id: createLocalId("dday"),
+        title,
+        date: ddayDate,
+        kind: ddayKind,
+        repeat: ddayRepeat,
       },
-      ...prev,
     ]);
-    setTodoInput("");
-    setTodoPriority("medium");
+    setDdays(next);
+    setDdayTitle("");
+    setDdayDate("");
+    setDdayKind("general");
+    setDdayRepeat("none");
   };
 
-  const addMonthlyGoal = () => {
+  const deleteDday = (id: string) => {
+    setDdays((previous) => previous.filter((item) => item.id !== id));
+  };
+
+  const updateActiveMonthGoals = (
+    updater: (goals: MonthlyGoalItem[]) => MonthlyGoalItem[],
+  ) => {
+    setMonthlyGoalsByMonth((previous) => {
+      const nextGoals = updater(previous[activeMonthKey] ?? []);
+      if (nextGoals.length === 0) {
+        const { [activeMonthKey]: removed, ...rest } = previous;
+        void removed;
+        return rest;
+      }
+      return { ...previous, [activeMonthKey]: nextGoals };
+    });
+  };
+
+  const addMonthlyGoal = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     const text = goalInput.trim();
     if (!text) return;
-
-    updateCurrentMonthGoals((prev) => [
+    updateActiveMonthGoals((previous) => [
+      ...previous,
       {
-        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        id: createLocalId("goal"),
         text,
         done: false,
         createdAt: new Date().toISOString(),
       },
-      ...prev,
     ]);
-
     setGoalInput("");
   };
 
-  const toggleTodo = (id: string) => {
-    setTodos((prev) => prev.map((todo) => (todo.id === id ? { ...todo, done: !todo.done } : todo)));
-  };
-
   const toggleMonthlyGoal = (id: string) => {
-    updateCurrentMonthGoals((prev) =>
-      prev.map((goal) => (goal.id === id ? { ...goal, done: !goal.done } : goal)),
+    updateActiveMonthGoals((goals) =>
+      goals.map((goal) => (goal.id === id ? { ...goal, done: !goal.done } : goal)),
     );
   };
 
-  const deleteTodo = (id: string) => {
-    setTodos((prev) => prev.filter((todo) => todo.id !== id));
-  };
-
   const deleteMonthlyGoal = (id: string) => {
-    updateCurrentMonthGoals((prev) => prev.filter((goal) => goal.id !== id));
-  };
-
-  const submitGithubUser = () => {
-    const next = githubUserInput.trim();
-    if (!next) return;
-    setGithubUser(next);
+    updateActiveMonthGoals((goals) => goals.filter((goal) => goal.id !== id));
   };
 
   return (
     <main className={styles.page}>
-      <h1>개인 운영 대시보드</h1>
-      <p className={styles.sub}>현재 날짜/시간, 할 일, 월간 목표, GitHub 저장소를 한 화면에서 확인합니다.</p>
-
-      <section className={styles.card} style={{ marginBottom: 16 }}>
-        <div className={styles.sectionHeader}>
-          <h2>현재 시간</h2>
+      <header className={styles.topbar}>
+        <div>
+          <p className={styles.brand}>YOUNGBIN LIFE OS</p>
+          <h1>오늘 무엇이 가장 중요한가?</h1>
         </div>
-        <p style={{ fontSize: 20, fontWeight: 700, marginBottom: 6 }}>{formatDateWithWeekday(now)}</p>
-        <p style={{ color: "var(--muted)", fontSize: 18 }}>{formatTime(now)}</p>
+        <div className={styles.nowPanel} aria-live="polite">
+          <strong>{now ? formatNow(now) : "날짜를 불러오는 중"}</strong>
+          <span>{now ? formatClock(now) : "--:--"}</span>
+          <em data-mode={todayShiftMode}>{SHIFT_LABELS[todayShiftMode]}</em>
+        </div>
+      </header>
+
+      <section className={styles.focusHero} aria-labelledby="focus-title">
+        <div className={styles.focusHeroMain}>
+          <p className={styles.focusLabel}>90일 집중 프로젝트</p>
+          <h2 id="focus-title">집밥노트</h2>
+          <p>
+            새 기능을 늘리기보다 검증·staging·실기기·출시 증거를 닫는 데 집중합니다.
+          </p>
+          <div className={styles.focusMeta}>
+            <span>{FOCUS_START_DATE_KEY.replaceAll("-", ".")}</span>
+            <span>→</span>
+            <span>{FOCUS_END_DATE_KEY.replaceAll("-", ".")}</span>
+            <strong>{focusDday.label}</strong>
+          </div>
+          <div className={styles.focusActions}>
+            <a href={JIPBAB_REPOSITORY_URL} target="_blank" rel="noreferrer">
+              집밥노트 저장소 열기
+            </a>
+            <a href={JIPBAB_RELEASE_PR_URL} target="_blank" rel="noreferrer">
+              출시 후보 PR #9 보기
+            </a>
+          </div>
+        </div>
+        <div className={styles.focusScore}>
+          <span>출시 게이트</span>
+          <strong>{focusProgress.percent}%</strong>
+          <ProgressBar value={focusProgress.percent} label="집밥노트 출시 게이트 진행률" />
+          <small>
+            {focusProgress.completed}/{focusProgress.total} 완료
+          </small>
+        </div>
       </section>
 
-      <div className={styles.grid}>
-        <section className={styles.card}>
-          <div className={styles.sectionHeader}>
-            <h2>이번 달 달력</h2>
-            <span className={styles.priority}>{monthLabel}</span>
+      <section className={styles.weekSection} aria-label="7일 근무표">
+        <div className={styles.sectionTitleRow}>
+          <div>
+            <h2>7일 보기</h2>
+            <p>날짜를 누르면 그날의 체크리스트와 시간표가 열립니다.</p>
+          </div>
+          <span className={styles.localBadge}>이 기기에만 저장</span>
+        </div>
+        <div className={styles.weekStrip}>
+          {weekDates.map((date) => {
+            const dateKey = getDateKey(date);
+            const mode = shiftOverrides[dateKey] ?? getShiftModeForDate(date, shiftAnchor);
+            const isSelected = dateKey === activeDateKey;
+            const isToday = dateKey === todayKey;
+            return (
+              <button
+                key={dateKey}
+                type="button"
+                className={styles.dayButton}
+                data-selected={isSelected}
+                data-today={isToday}
+                data-mode={mode}
+                aria-pressed={isSelected}
+                onClick={() => setSelectedDateKey(dateKey)}
+              >
+                <span>{date.toLocaleDateString("ko-KR", { weekday: "short" })}</span>
+                <strong>{date.getDate()}</strong>
+                <small>{SHIFT_LABELS[mode]}</small>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      <div className={styles.primaryGrid}>
+        <section className={styles.panel} aria-labelledby="checklist-title">
+          <div className={styles.sectionTitleRow}>
+            <div>
+              <h2 id="checklist-title">{formatDateKeyKo(activeDateKey)} 체크리스트</h2>
+              <p>완료를 누르면 즉시 표시되고 브라우저에 저장됩니다.</p>
+            </div>
+            <div className={styles.progressSummary}>
+              <strong>{checklistProgress.percent}%</strong>
+              <span>{checklistProgress.completed}/{checklistProgress.total}</span>
+            </div>
           </div>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
-              gap: 6,
-              marginBottom: 8,
-            }}
-          >
-            {WEEKDAY_KO.map((day) => (
-              <div
-                key={day}
-                style={{ textAlign: "center", color: "var(--muted)", fontSize: 13, fontWeight: 600 }}
+          <form className={styles.checklistForm} onSubmit={addChecklistItem}>
+            <label>
+              <span className={styles.srOnly}>체크리스트 항목</span>
+              <input
+                value={checklistInput}
+                onChange={(event) => setChecklistInput(event.target.value)}
+                placeholder="예: staging read-only 확인"
+              />
+            </label>
+            <label>
+              <span className={styles.srOnly}>분류</span>
+              <select
+                value={checklistBucket}
+                onChange={(event) => setChecklistBucket(event.target.value as ChecklistBucket)}
               >
-                {day}
-              </div>
-            ))}
-            {calendarCells.map((cell, index) => (
-              <div
-                key={`${cell.day}-${index}`}
-                style={{
-                  minHeight: 34,
-                  borderRadius: 10,
-                  border: "1px solid rgba(15, 23, 42, 0.08)",
-                  background: cell.isToday ? "#dbeafe" : "rgba(255,255,255,0.78)",
-                  color: cell.inCurrentMonth ? "var(--text)" : "var(--muted)",
-                  opacity: cell.inCurrentMonth ? 1 : 0.65,
-                  display: "grid",
-                  placeItems: "center",
-                  fontWeight: cell.isToday ? 700 : 500,
-                }}
-              >
-                {cell.day}
-              </div>
-            ))}
+                <option value="must">TODAY MUST</option>
+                <option value="should">TODAY SHOULD</option>
+                <option value="notToday">NOT TODAY</option>
+              </select>
+            </label>
+            <button type="submit" className={styles.primaryButton}>추가</button>
+            <button type="button" className={styles.secondaryButton} onClick={loadDefaultChecklist}>
+              기본값
+            </button>
+          </form>
+          {checklistNotice && <p className={styles.notice}>{checklistNotice}</p>}
+
+          <div className={styles.checklistLanes}>
+            {(["must", "should", "notToday"] as ChecklistBucket[]).map((bucket) => {
+              const bucketItems = activeChecklist.filter((item) => item.bucket === bucket);
+              return (
+                <div className={styles.checklistLane} data-bucket={bucket} key={bucket}>
+                  <div className={styles.laneHeader}>
+                    <div>
+                      <h3>{CHECKLIST_BUCKET_LABELS[bucket]}</h3>
+                      <p>{BUCKET_DESCRIPTIONS[bucket]}</p>
+                    </div>
+                    <span>{bucketItems.filter((item) => !item.done).length}</span>
+                  </div>
+                  <div className={styles.checkRows}>
+                    {bucketItems.length === 0 ? (
+                      <EmptyMessage>등록된 항목이 없습니다.</EmptyMessage>
+                    ) : (
+                      bucketItems.map((item) => (
+                        <div className={styles.checkRow} data-done={item.done} key={item.id}>
+                          <label>
+                            <input
+                              type="checkbox"
+                              checked={item.done}
+                              onChange={() => toggleChecklistItem(item.id)}
+                            />
+                            <span>{item.text}</span>
+                          </label>
+                          <button
+                            type="button"
+                            className={styles.iconButton}
+                            onClick={() => deleteChecklistItem(item.id)}
+                            aria-label={`${item.text} 삭제`}
+                          >
+                            삭제
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </section>
 
-        <section className={styles.card}>
-          <div className={styles.sectionHeader}>
-            <h2>투두리스트</h2>
-            <span className={styles.priority}>{todos.filter((todo) => !todo.done).length}개 남음</span>
+        <aside className={styles.panel} aria-labelledby="dday-title">
+          <div className={styles.sectionTitleRow}>
+            <div>
+              <h2 id="dday-title">D‑day Lock</h2>
+              <p>중요한 날짜를 잊지 않도록 한곳에 모읍니다.</p>
+            </div>
           </div>
 
-          <div className={styles.addRow}>
-            <input
-              value={todoInput}
-              onChange={(event) => setTodoInput(event.target.value)}
-              placeholder="할 일을 입력해주세요"
-              onKeyDown={(event) => {
-                if (event.key === "Enter") addTodo();
-              }}
-            />
-            <select
-              value={todoPriority}
-              onChange={(event) => setTodoPriority(event.target.value as Priority)}
-            >
-              <option value="high">높음</option>
-              <option value="medium">보통</option>
-              <option value="low">낮음</option>
-            </select>
-            <button onClick={addTodo}>추가</button>
-          </div>
+          <form className={styles.ddayForm} onSubmit={addDday}>
+            <label>
+              <span>이름</span>
+              <input
+                value={ddayTitle}
+                onChange={(event) => setDdayTitle(event.target.value)}
+                placeholder="예: 가족 기념일"
+              />
+            </label>
+            <label>
+              <span>날짜</span>
+              <input
+                type="date"
+                value={ddayDate}
+                onChange={(event) => setDdayDate(event.target.value)}
+              />
+            </label>
+            <div className={styles.ddaySelectRow}>
+              <label>
+                <span>종류</span>
+                <select value={ddayKind} onChange={(event) => setDdayKind(event.target.value as DdayKind)}>
+                  <option value="general">일반</option>
+                  <option value="birthday">생일</option>
+                  <option value="anniversary">기념일</option>
+                </select>
+              </label>
+              <label>
+                <span>반복</span>
+                <select
+                  value={ddayRepeat}
+                  onChange={(event) => setDdayRepeat(event.target.value as DdayRepeat)}
+                >
+                  <option value="none">반복 없음</option>
+                  <option value="yearly">매년</option>
+                </select>
+              </label>
+            </div>
+            <button type="submit" className={styles.primaryButton}>D‑day 추가</button>
+          </form>
 
-          <div className={styles.tasks}>
-            {todos.length === 0 ? (
-              <p style={{ color: "var(--muted)" }}>등록된 할 일이 없습니다.</p>
+          <p className={styles.inlineNote}>
+            DDayLock의 로컬 우선 원칙을 적용했습니다. 현재 웹 버전은 양력·매년 반복만 지원합니다.
+          </p>
+
+          <div className={styles.ddayList}>
+            {sortedDdays.length === 0 ? (
+              <EmptyMessage>등록된 D‑day가 없습니다.</EmptyMessage>
             ) : (
-              todos.map((todo) => (
-                <div className={styles.taskItem} key={todo.id}>
-                  <label>
-                    <input type="checkbox" checked={todo.done} onChange={() => toggleTodo(todo.id)} />
-                    <span className={todo.done ? styles.done : ""}>{todo.text}</span>
-                  </label>
-                  <span className={styles.priority}>
-                    {todo.priority === "high" ? "높음" : todo.priority === "low" ? "낮음" : "보통"}
-                  </span>
-                  <button onClick={() => deleteTodo(todo.id)}>삭제</button>
-                </div>
-              ))
+              sortedDdays.map((item) => {
+                const status = getDdayStatus(item.date, item.repeat, todayDate);
+                return (
+                  <article className={styles.ddayItem} key={item.id}>
+                    <div className={styles.ddayCount}>{status.label}</div>
+                    <div className={styles.ddayBody}>
+                      <strong>{item.title}</strong>
+                      <span>
+                        {status.targetDateKey.replaceAll("-", ".")} · {DDAY_KIND_LABELS[item.kind]}
+                        {item.repeat === "yearly" ? " · 매년" : ""}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      className={styles.iconButton}
+                      onClick={() => deleteDday(item.id)}
+                      aria-label={`${item.title} 삭제`}
+                    >
+                      삭제
+                    </button>
+                  </article>
+                );
+              })
             )}
           </div>
+        </aside>
+      </div>
+
+      <section className={styles.panel} aria-labelledby="schedule-title">
+        <div className={styles.sectionTitleRow}>
+          <div>
+            <h2 id="schedule-title">{formatDateKeyKo(activeDateKey)} 나의 시간표</h2>
+            <p>근무 형태별 시간표를 만들고, 오늘 실제로 지켰는지 체크합니다.</p>
+          </div>
+          <div className={styles.scheduleControls}>
+            <select
+              aria-label="근무 형태"
+              value={shiftOverrides[activeDateKey] ?? "auto"}
+              onChange={(event) => updateShiftOverride(event.target.value as ShiftMode | "auto")}
+            >
+              {SCHEDULE_MODE_OPTIONS.map((option) => (
+                <option value={option.value} key={option.value}>{option.label}</option>
+              ))}
+            </select>
+            <button type="button" className={styles.secondaryButton} onClick={resetScheduleTemplate}>
+              예시로 초기화
+            </button>
+          </div>
+        </div>
+
+        <div className={styles.scheduleSummary}>
+          <span data-mode={activeShiftMode}>{SHIFT_LABELS[activeShiftMode]}</span>
+          <ProgressBar value={scheduleProgress.percent} label="시간표 실행률" />
+          <small>{scheduleProgress.completed}/{scheduleProgress.total} 완료</small>
+        </div>
+
+        <div className={styles.timeline}>
+          {activeSchedule.length === 0 ? (
+            <EmptyMessage>시간표가 비어 있습니다. 아래에서 첫 일정을 추가하세요.</EmptyMessage>
+          ) : (
+            activeSchedule.map((item) => {
+              const done = completedScheduleIds.has(item.id);
+              return (
+                <article className={styles.timelineRow} data-category={item.category} data-done={done} key={item.id}>
+                  <label className={styles.timelineCheck}>
+                    <input
+                      type="checkbox"
+                      checked={done}
+                      onChange={() => toggleScheduleCompletion(item.id)}
+                    />
+                    <span className={styles.srOnly}>{item.title} 완료</span>
+                  </label>
+                  <time>{item.start}<span>–</span>{item.end}</time>
+                  <div className={styles.timelineBody}>
+                    <strong>{item.title}</strong>
+                    <span>{SCHEDULE_CATEGORY_LABELS[item.category]}</span>
+                  </div>
+                  <div className={styles.rowActions}>
+                    <button type="button" onClick={() => editScheduleBlock(item)}>편집</button>
+                    <button type="button" onClick={() => deleteScheduleBlock(item.id)}>삭제</button>
+                  </div>
+                </article>
+              );
+            })
+          )}
+        </div>
+
+        <form className={styles.scheduleForm} onSubmit={saveScheduleBlock}>
+          <label className={styles.scheduleTitleField}>
+            <span>일정 이름</span>
+            <input
+              value={scheduleTitle}
+              onChange={(event) => setScheduleTitle(event.target.value)}
+              placeholder="예: 집밥노트 PR 확인"
+            />
+          </label>
+          <label>
+            <span>시작</span>
+            <input type="time" value={scheduleStart} onChange={(event) => setScheduleStart(event.target.value)} />
+          </label>
+          <label>
+            <span>종료</span>
+            <input type="time" value={scheduleEnd} onChange={(event) => setScheduleEnd(event.target.value)} />
+          </label>
+          <label>
+            <span>분류</span>
+            <select
+              value={scheduleCategory}
+              onChange={(event) => setScheduleCategory(event.target.value as ScheduleCategory)}
+            >
+              {Object.entries(SCHEDULE_CATEGORY_LABELS).map(([value, label]) => (
+                <option value={value} key={value}>{label}</option>
+              ))}
+            </select>
+          </label>
+          <button type="submit" className={styles.primaryButton}>
+            {scheduleEditingId ? "수정 저장" : "시간 추가"}
+          </button>
+          {scheduleEditingId && (
+            <button
+              type="button"
+              className={styles.secondaryButton}
+              onClick={() => {
+                setScheduleEditingId(null);
+                setScheduleTitle("");
+              }}
+            >
+              취소
+            </button>
+          )}
+        </form>
+        <p className={styles.inlineNote}>
+          표시된 근무시간은 초기 예시입니다. 실제 교대시간에 맞게 편집한 뒤 사용하세요.
+        </p>
+      </section>
+
+      <div className={styles.bottomGrid}>
+        <section className={styles.panel} aria-labelledby="milestone-title">
+          <div className={styles.sectionTitleRow}>
+            <div>
+              <h2 id="milestone-title">집밥노트 90일 출시 체크리스트</h2>
+              <p>새 기능보다 출시를 막는 증거와 검증을 먼저 닫습니다.</p>
+            </div>
+            <div className={styles.progressSummary}>
+              <strong>{focusProgress.percent}%</strong>
+              <span>{focusProgress.completed}/{focusProgress.total}</span>
+            </div>
+          </div>
+          <div className={styles.milestoneList}>
+            {milestones.map((item, index) => (
+              <label className={styles.milestoneRow} data-done={item.done} key={item.id}>
+                <span className={styles.stepNumber}>{String(index + 1).padStart(2, "0")}</span>
+                <input
+                  type="checkbox"
+                  checked={item.done}
+                  onChange={() => toggleMilestone(item.id)}
+                />
+                <span>{item.title}</span>
+                <strong>{item.done ? "완료" : "진행 전"}</strong>
+              </label>
+            ))}
+          </div>
         </section>
 
-        <section className={styles.card}>
-          <div className={styles.sectionHeader}>
-            <h2>월간 목표</h2>
-            <span className={styles.priority}>{monthLabel}</span>
+        <section className={styles.panel} aria-labelledby="monthly-title">
+          <div className={styles.sectionTitleRow}>
+            <div>
+              <h2 id="monthly-title">{activeMonthKey} 월간 결과</h2>
+              <p>이번 달에 실제로 끝낼 결과만 적습니다.</p>
+            </div>
           </div>
-
-          <div className={styles.addRowJournal}>
+          <ProgressBar value={activeMonthGoalProgress.percent} label="월간 목표 진행률" />
+          <form className={styles.monthlyForm} onSubmit={addMonthlyGoal}>
             <input
               value={goalInput}
               onChange={(event) => setGoalInput(event.target.value)}
-              placeholder="이번 달 목표를 입력해주세요"
-              onKeyDown={(event) => {
-                if (event.key === "Enter") addMonthlyGoal();
-              }}
+              placeholder="예: staging rollback rehearsal 완료"
+              aria-label="월간 목표"
             />
-            <button onClick={addMonthlyGoal}>추가</button>
-          </div>
-
-          <div className={styles.goalProgressWrap}>
-            <div className={styles.goalProgressTrack}>
-              <div
-                className={styles.goalProgressFill}
-                style={{ width: `${currentMonthGoalProgress.percent}%` }}
-              />
-            </div>
-            <p className={styles.helperText}>
-              {currentMonthGoalProgress.total === 0
-                ? "아직 등록된 월간 목표가 없습니다."
-                : `달성률 ${currentMonthGoalProgress.percent}% · ${currentMonthGoalProgress.completed}/${currentMonthGoalProgress.total} 완료`}
-            </p>
-          </div>
-
-          <div className={styles.tasks}>
-            {currentMonthGoals.length === 0 ? (
-              <p style={{ color: "var(--muted)" }}>이번 달 목표가 없습니다.</p>
+            <button type="submit" className={styles.primaryButton}>추가</button>
+          </form>
+          <div className={styles.monthlyList}>
+            {activeMonthGoals.length === 0 ? (
+              <EmptyMessage>이번 달 결과가 없습니다.</EmptyMessage>
             ) : (
-              currentMonthGoals.map((goal) => (
-                <div className={styles.taskItem} key={goal.id}>
+              activeMonthGoals.map((goal) => (
+                <div className={styles.checkRow} data-done={goal.done} key={goal.id}>
                   <label>
                     <input
                       type="checkbox"
                       checked={goal.done}
                       onChange={() => toggleMonthlyGoal(goal.id)}
                     />
-                    <span className={goal.done ? styles.done : ""}>{goal.text}</span>
+                    <span>{goal.text}</span>
                   </label>
-                  <span
-                    className={`${styles.priority} ${goal.done ? styles.goalStatusDone : styles.goalStatusPending}`}
+                  <button
+                    type="button"
+                    className={styles.iconButton}
+                    onClick={() => deleteMonthlyGoal(goal.id)}
+                    aria-label={`${goal.text} 삭제`}
                   >
-                    {goal.done ? "완료" : "진행중"}
-                  </span>
-                  <button onClick={() => deleteMonthlyGoal(goal.id)}>삭제</button>
+                    삭제
+                  </button>
                 </div>
               ))
             )}
@@ -508,50 +919,11 @@ export default function DashboardPage() {
         </section>
       </div>
 
-      <section className={styles.card}>
-        <div className={styles.sectionHeader}>
-          <h2>GitHub 저장소</h2>
-        </div>
-
-        <div className={styles.addRowJournal}>
-          <input
-            value={githubUserInput}
-            onChange={(event) => setGithubUserInput(event.target.value)}
-            placeholder="GitHub 사용자명"
-            onKeyDown={(event) => {
-              if (event.key === "Enter") submitGithubUser();
-            }}
-          />
-          <button onClick={submitGithubUser}>불러오기</button>
-        </div>
-
-        <p className={styles.helperText}>
-          현재 사용자: <strong>{githubUser}</strong>
-        </p>
-
-        {isRepoLoading && <p style={{ color: "var(--muted)" }}>저장소를 불러오는 중입니다...</p>}
-        {repoError && <p className={styles.errorText}>{repoError}</p>}
-
-        {!isRepoLoading && !repoError && (
-          <ul style={{ marginLeft: 18, lineHeight: 1.8 }}>
-            {repos.length === 0 ? (
-              <li>표시할 저장소가 없습니다.</li>
-            ) : (
-              repos.map((repo) => (
-                <li key={repo.id}>
-                  <a href={repo.htmlUrl} target="_blank" rel="noreferrer">
-                    {repo.name}
-                  </a>
-                  <div className={styles.eventTime}>
-                    ⭐ {repo.stars} · 업데이트 {new Date(repo.updatedAt).toLocaleDateString("ko-KR")}
-                  </div>
-                  {repo.description && <div className={styles.helperText}>{repo.description}</div>}
-                </li>
-              ))
-            )}
-          </ul>
-        )}
-      </section>
+      <footer className={styles.footer}>
+        <strong>운영 규칙</strong>
+        <span>MUST 3개 · PUSH 프로젝트 1개 · 야간근무 주간에는 회복 우선</span>
+        <span>로그인·서버 없이 이 브라우저에만 저장됩니다.</span>
+      </footer>
     </main>
   );
 }
