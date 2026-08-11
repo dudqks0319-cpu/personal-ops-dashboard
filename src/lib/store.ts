@@ -1,6 +1,7 @@
 import { promises as fs } from "fs";
 import path from "path";
 import { normalizeLaunchpadUrl } from "@/lib/launchpad";
+import { dashboardEnv } from "@/lib/runtime-env";
 
 export type Task = {
   id: string;
@@ -49,6 +50,9 @@ export type DashboardData = {
   launchpad: LaunchpadItem[];
 };
 
+if (dashboardEnv.DASHBOARD_STORAGE_MODE !== "file") {
+  throw new Error("Unsupported dashboard storage mode.");
+}
 const dataDir = path.join(process.cwd(), "data");
 const dataFile = path.join(dataDir, "dashboard.json");
 const backupFile = path.join(dataDir, "dashboard.backup.json");

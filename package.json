@@ -2,6 +2,7 @@
   "name": "personal-ops-dashboard",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -10,7 +11,8 @@
     "test": "node --test --experimental-strip-types tests/**/*.test.ts"
   },
   "dependencies": {
-    "next": "16.1.6",
+    "@youngbin-studio/env": "file:vendor/youngbin-studio-env-0.1.0.tgz",
+    "next": "16.3.0",
     "react": "19.2.3",
     "react-dom": "19.2.3"
   },
@@ -19,7 +21,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.1.6",
+    "eslint-config-next": "16.3.0",
     "typescript": "^5"
   }
 }
