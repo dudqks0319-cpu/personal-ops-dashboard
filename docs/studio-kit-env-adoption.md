@@ -1,7 +1,7 @@
 # Studio Kit env v0.1 adoption
 
-- Artifact: `vendor/youngbin-studio-env-0.1.0.tgz`
-- Exact package version: `0.1.0`
+- Artifact: `vendor/youngbin-studio-env-0.1.1.tgz`
+- Exact package version: `0.1.1`
 - Initial boundary: `NODE_ENV`, `DASHBOARD_STORAGE_MODE`
 - Provider/key rename: none
 - External resource change: none
