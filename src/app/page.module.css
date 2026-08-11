@@ -1,396 +1,1067 @@
 .page {
-  max-width: 1024px;
+  width: min(1320px, calc(100% - 32px));
   margin: 0 auto;
-  padding: 40px 20px 56px;
+  padding: 28px 0 56px;
 }
 
-.page h1 {
-  font-size: clamp(32px, 5vw, 46px);
-  letter-spacing: -0.03em;
-  margin-bottom: 8px;
+.topbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 22px;
 }
 
-.sub {
-  color: var(--muted);
-  margin-bottom: 24px;
-  font-size: 17px;
+.brand {
+  margin: 0 0 8px;
+  color: var(--accent-strong);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
 }
 
-.errorBanner {
-  margin: 0 0 16px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid #fecaca;
-  background: #fff1f2;
-  color: #9f1239;
-  font-size: 14px;
+.topbar h1 {
+  max-width: 780px;
+  margin: 0;
+  font-size: clamp(34px, 5vw, 62px);
+  line-height: 1.02;
+  letter-spacing: -0.055em;
 }
 
-.grid {
+.nowPanel {
+  min-width: 230px;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 16px;
+  justify-items: end;
+  gap: 4px;
+  padding-bottom: 4px;
+}
+
+.nowPanel strong {
+  font-size: 15px;
+}
+
+.nowPanel span {
+  color: var(--muted);
+  font-size: 28px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+}
+
+.nowPanel em,
+.scheduleSummary > span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: var(--surface-subtle);
+  color: var(--muted-strong);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.nowPanel em[data-mode="night"],
+.scheduleSummary > span[data-mode="night"] {
+  background: #e9e7ff;
+  color: #4c3cb7;
+}
+
+.nowPanel em[data-mode="day"],
+.scheduleSummary > span[data-mode="day"] {
+  background: #fff2c8;
+  color: #815a00;
+}
+
+.nowPanel em[data-mode="off"],
+.scheduleSummary > span[data-mode="off"] {
+  background: #dff7eb;
+  color: #176b4d;
+}
+
+.focusHero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 28px;
+  padding: clamp(24px, 4vw, 42px);
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at 92% 10%, rgba(91, 226, 167, 0.25), transparent 34%),
+    linear-gradient(145deg, #0b1d18 0%, #102d25 58%, #15392e 100%);
+  color: #f6fffb;
+  box-shadow: 0 26px 70px rgba(10, 42, 32, 0.22);
+}
+
+.focusHeroMain {
+  align-self: center;
+}
+
+.focusLabel {
+  margin: 0 0 10px;
+  color: #9be7c3;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+}
+
+.focusHero h2 {
+  margin: 0;
+  font-size: clamp(40px, 6vw, 76px);
+  letter-spacing: -0.06em;
+  line-height: 0.98;
+}
+
+.focusHeroMain > p:not(.focusLabel) {
+  max-width: 720px;
+  margin: 16px 0 0;
+  color: rgba(246, 255, 251, 0.72);
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+.focusMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 9px;
+  margin-top: 20px;
+  color: rgba(246, 255, 251, 0.68);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.focusMeta strong {
+  margin-left: 5px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #95efc1;
+  color: #0a2d21;
+  font-size: 13px;
+}
+
+.focusActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.focusActions a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 42px;
+  padding: 10px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #f6fffb;
+  font-size: 13px;
+  font-weight: 750;
+  transition: transform 160ms ease, background 160ms ease;
+}
+
+.focusActions a:hover,
+.focusActions a:focus-visible {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
+}
+
+.focusScore {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.focusScore > span {
+  color: rgba(246, 255, 251, 0.65);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.focusScore > strong {
+  margin: 8px 0 18px;
+  font-size: 52px;
+  letter-spacing: -0.06em;
+}
+
+.focusScore small {
+  margin-top: 10px;
+  color: rgba(246, 255, 251, 0.62);
+  text-align: right;
+}
+
+.focusScore .progressTrack {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.focusScore .progressFill {
+  background: #95efc1;
+}
+
+.weekSection,
+.panel {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.weekSection {
+  margin-top: 18px;
+  padding: 20px;
+  border-radius: 22px;
+}
+
+.sectionTitleRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
   margin-bottom: 16px;
 }
 
-.card {
-  background: var(--card);
-  border: 1px solid var(--card-border);
-  border-radius: 22px;
-  padding: 18px;
-  box-shadow: var(--shadow);
-  backdrop-filter: saturate(170%) blur(16px);
+.sectionTitleRow h2 {
+  margin: 0;
+  font-size: 21px;
+  letter-spacing: -0.03em;
 }
 
-.card h2 {
-  margin: 0 0 12px;
+.sectionTitleRow p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.localBadge {
+  flex: 0 0 auto;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #eef7f3;
+  color: #236e54;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.weekStrip {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(92px, 1fr));
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.dayButton {
+  min-width: 92px;
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  background: #fff;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 150ms ease, transform 150ms ease, box-shadow 150ms ease;
+}
+
+.dayButton:hover,
+.dayButton:focus-visible {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.dayButton[data-selected="true"] {
+  border-color: var(--accent);
+  background: #eff9f5;
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.dayButton[data-today="true"] strong::after {
+  content: "오늘";
+  margin-left: 6px;
+  color: var(--accent-strong);
+  font-size: 9px;
+  font-weight: 800;
+  vertical-align: middle;
+}
+
+.dayButton > span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.dayButton > strong {
   font-size: 22px;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.04em;
 }
 
-.sectionHeader {
+.dayButton > small {
+  color: var(--muted-strong);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.dayButton[data-mode="night"] > small {
+  color: #5b48bd;
+}
+
+.dayButton[data-mode="day"] > small {
+  color: #8a6200;
+}
+
+.dayButton[data-mode="off"] > small {
+  color: #187151;
+}
+
+.primaryGrid,
+.bottomGrid {
+  display: grid;
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.primaryGrid {
+  grid-template-columns: minmax(0, 1.7fr) minmax(320px, 0.75fr);
+}
+
+.bottomGrid {
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
+}
+
+.panel {
+  min-width: 0;
+  padding: 22px;
+  border-radius: 22px;
+}
+
+.progressSummary {
+  min-width: 70px;
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+}
+
+.progressSummary strong {
+  font-size: 26px;
+  letter-spacing: -0.04em;
+}
+
+.progressSummary span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.progressGroup {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(80px, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.progressTrack {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e7ecea;
+}
+
+.progressFill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), var(--accent-strong));
+  transition: width 220ms ease;
+}
+
+.progressValue {
+  min-width: 32px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  text-align: right;
+}
+
+.checklistForm {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 150px auto auto;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.checklistForm label {
+  min-width: 0;
+}
+
+.checklistForm input,
+.checklistForm select,
+.ddayForm input,
+.ddayForm select,
+.scheduleControls select,
+.scheduleForm input,
+.scheduleForm select,
+.monthlyForm input {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid var(--border-strong);
+  border-radius: 11px;
+  background: #fff;
+  color: var(--text);
+  padding: 9px 11px;
+  outline: none;
+}
+
+.checklistForm input:focus,
+.checklistForm select:focus,
+.ddayForm input:focus,
+.ddayForm select:focus,
+.scheduleControls select:focus,
+.scheduleForm input:focus,
+.scheduleForm select:focus,
+.monthlyForm input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(21, 127, 91, 0.12);
+}
+
+.primaryButton,
+.secondaryButton,
+.iconButton,
+.rowActions button {
+  min-height: 40px;
+  border-radius: 11px;
+  cursor: pointer;
+  font-weight: 750;
+  transition: transform 150ms ease, background 150ms ease, border-color 150ms ease;
+}
+
+.primaryButton {
+  border: 1px solid var(--accent-strong);
+  background: var(--accent-strong);
+  color: #fff;
+  padding: 9px 14px;
+}
+
+.primaryButton:hover,
+.primaryButton:focus-visible {
+  background: #0e6548;
+  transform: translateY(-1px);
+}
+
+.secondaryButton {
+  border: 1px solid var(--border-strong);
+  background: #fff;
+  color: var(--text);
+  padding: 9px 12px;
+}
+
+.secondaryButton:hover,
+.secondaryButton:focus-visible,
+.rowActions button:hover,
+.rowActions button:focus-visible {
+  border-color: var(--accent);
+  background: #f1faf6;
+}
+
+.notice {
+  margin: -4px 0 12px;
+  padding: 9px 11px;
+  border-radius: 10px;
+  background: #fff6d8;
+  color: #795600;
+  font-size: 12px;
+}
+
+.checklistLanes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.checklistLane {
+  min-width: 0;
+  padding: 13px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: #fbfcfb;
+}
+
+.checklistLane[data-bucket="must"] {
+  border-top: 3px solid #d95c4b;
+}
+
+.checklistLane[data-bucket="should"] {
+  border-top: 3px solid #e5a32b;
+}
+
+.checklistLane[data-bucket="notToday"] {
+  border-top: 3px solid #718096;
+}
+
+.laneHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 11px;
+}
+
+.laneHeader h3 {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.035em;
+}
+
+.laneHeader p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.laneHeader > span {
+  display: grid;
+  place-items: center;
+  min-width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: #edf1ef;
+  color: var(--muted-strong);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.checkRows,
+.ddayList,
+.monthlyList {
+  display: grid;
+  gap: 8px;
+}
+
+.checkRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-
-.sectionHeader h2 {
-  margin-bottom: 0;
-}
-
-.card ul {
-  margin-left: 18px;
-  line-height: 1.6;
-}
-
-.focusButtons {
-  display: flex;
   gap: 8px;
-  margin-top: 12px;
+  min-height: 42px;
+  padding: 8px 9px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: #fff;
 }
 
-.focusButtons button,
-.addRow button,
-.addRowJournal button,
-.addRowLaunchpad button,
-.taskItem button {
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  background: rgba(255, 255, 255, 0.8);
-  border-radius: 12px;
-  padding: 9px 13px;
+.checkRow label {
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
   cursor: pointer;
 }
 
-.focusButtons button:hover,
-.addRow button:hover,
-.addRowJournal button:hover,
-.addRowLaunchpad button:hover,
-.taskItem button:hover {
-  transform: translateY(-1px);
-  border-color: rgba(10, 132, 255, 0.35);
+.checkRow label span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  line-height: 1.45;
 }
 
-.focusButtons button:disabled,
-.addRow button:disabled,
-.addRowJournal button:disabled,
-.addRowLaunchpad button:disabled,
-.taskItem button:disabled,
-.addRowCalendar button:disabled {
-  cursor: not-allowed;
-  opacity: 0.58;
-  transform: none;
-}
-
-.addRow {
-  display: grid;
-  grid-template-columns: 1fr 120px 90px;
-  gap: 10px;
-  margin-bottom: 14px;
-}
-
-.addRow input,
-.addRow select {
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.8);
-  padding: 11px 12px;
-}
-
-.addRow input:focus,
-.addRow select:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.15);
-}
-
-.tasks {
-  display: grid;
-  gap: 10px;
-}
-
-.taskItem {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  gap: 10px;
-  align-items: center;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 14px;
-  padding: 12px;
-  background: rgba(255, 255, 255, 0.78);
-}
-
-.taskItem label {
-  display: flex;
-  gap: 9px;
-  align-items: center;
-}
-
-.taskItem input[type="checkbox"] {
-  accent-color: var(--accent);
-  transform: scale(1.12);
-}
-
-.done {
+.checkRow[data-done="true"] label span {
+  color: var(--muted);
   text-decoration: line-through;
-  color: #94a3b8;
 }
 
-.priority {
-  font-size: 12px;
-  color: #075985;
-  background: #e0f2fe;
-  padding: 5px 9px;
-  border-radius: 999px;
+.checkRow input[type="checkbox"],
+.timelineCheck input,
+.milestoneRow input {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+  margin-top: 1px;
+  accent-color: var(--accent-strong);
 }
 
-.addRowJournal {
-  display: grid;
-  grid-template-columns: 1fr 110px;
-  gap: 10px;
-  margin-bottom: 14px;
+.iconButton {
+  flex: 0 0 auto;
+  min-height: 30px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  padding: 4px 5px;
+  font-size: 10px;
 }
 
-.addRowJournal input {
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.8);
-  padding: 11px 12px;
+.iconButton:hover,
+.iconButton:focus-visible {
+  background: #f1f3f2;
+  color: #a33c32;
 }
 
-.addRowJournal input:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.15);
-}
-
-.addRowLaunchpad {
-  display: grid;
-  grid-template-columns: 1fr 1.3fr 1fr 90px 110px;
-  gap: 10px;
-  margin-bottom: 14px;
-}
-
-.addRowLaunchpad input {
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.8);
-  padding: 11px 12px;
-}
-
-.addRowLaunchpad input:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.15);
-}
-
-.helperText {
+.emptyMessage {
+  margin: 0;
+  padding: 14px 8px;
   color: var(--muted);
   font-size: 12px;
-  margin: -4px 0 10px;
+  text-align: center;
 }
 
-.goalProgressWrap {
-  margin: 0 0 12px;
-}
-
-.goalProgressTrack {
-  width: 100%;
-  height: 10px;
-  border-radius: 999px;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  background: rgba(148, 163, 184, 0.25);
-  overflow: hidden;
-}
-
-.goalProgressFill {
-  height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, #0ea5e9, #2563eb);
-  transition: width 0.2s ease;
-}
-
-.goalStatusDone {
-  color: #065f46;
-  background: #d1fae5;
-}
-
-.goalStatusPending {
-  color: #1d4ed8;
-  background: #dbeafe;
-}
-
-.launchpadFilterRow {
+.ddayForm {
   display: grid;
-  grid-template-columns: 1fr 130px auto;
   gap: 10px;
+}
+
+.ddayForm label,
+.scheduleForm label {
+  display: grid;
+  gap: 5px;
+}
+
+.ddayForm label > span,
+.scheduleForm label > span {
+  color: var(--muted-strong);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.ddaySelectRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.inlineNote {
+  margin: 12px 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.ddayItem {
+  display: grid;
+  grid-template-columns: 60px minmax(0, 1fr) auto;
   align-items: center;
-  margin: 0 0 10px;
+  gap: 10px;
+  padding: 11px;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  background: #fff;
 }
 
-.launchpadSearchInput,
-.launchpadFilterSelect {
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.8);
-  padding: 10px 12px;
+.ddayCount {
+  color: var(--accent-strong);
+  font-size: 16px;
+  font-weight: 850;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
 }
 
-.launchpadSearchInput:focus,
-.launchpadFilterSelect:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.15);
+.ddayBody {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
 }
 
-.launchpadCountText {
-  font-size: 12px;
-  color: var(--muted);
-  justify-self: end;
+.ddayBody strong {
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.syncText {
-  margin: 0 0 10px;
+.ddayBody span {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 10px;
 }
 
-.noticeText,
-.errorText {
-  margin: 0 0 10px;
-  border-radius: 12px;
-  padding: 9px 11px;
-  font-size: 13px;
+.scheduleControls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.noticeText {
-  color: #065f46;
-  background: #ecfdf5;
-  border: 1px solid #a7f3d0;
+.scheduleControls select {
+  min-width: 138px;
 }
 
-.errorText {
-  color: #9f1239;
-  background: #fff1f2;
-  border: 1px solid #fecdd3;
-}
-
-.addRowCalendar {
+.scheduleSummary {
   display: grid;
-  grid-template-columns: 1fr 220px 110px;
-  gap: 10px;
-  margin-bottom: 14px;
+  grid-template-columns: auto minmax(180px, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  margin: -2px 0 14px;
+  padding: 10px 12px;
+  border-radius: 13px;
+  background: var(--surface-subtle);
 }
 
-.addRowCalendar input {
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.8);
-  padding: 11px 12px;
+.scheduleSummary small {
+  color: var(--muted);
+  font-size: 11px;
 }
 
-.addRowCalendar input:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.15);
+.timeline {
+  display: grid;
+  gap: 8px;
 }
 
-.addRowCalendar button {
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  background: rgba(255, 255, 255, 0.8);
-  border-radius: 12px;
-  padding: 9px 13px;
+.timelineRow {
+  position: relative;
+  display: grid;
+  grid-template-columns: 24px 112px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 13px;
+  border: 1px solid var(--border);
+  border-left: 4px solid #88939e;
+  border-radius: 13px;
+  background: #fff;
+}
+
+.timelineRow[data-category="sleep"] { border-left-color: #7568c8; }
+.timelineRow[data-category="work"] { border-left-color: #4a76b8; }
+.timelineRow[data-category="family"] { border-left-color: #dc7a65; }
+.timelineRow[data-category="focus"] { border-left-color: var(--accent-strong); }
+.timelineRow[data-category="health"] { border-left-color: #c88f2c; }
+.timelineRow[data-category="life"] { border-left-color: #77838e; }
+
+.timelineRow[data-done="true"] {
+  background: #f5f8f6;
+  opacity: 0.72;
+}
+
+.timelineRow[data-done="true"] .timelineBody strong {
+  text-decoration: line-through;
+}
+
+.timelineCheck {
+  display: grid;
+  place-items: center;
   cursor: pointer;
 }
 
-.eventTime {
-  margin-top: 4px;
+.timelineRow time {
+  display: flex;
+  gap: 5px;
+  color: var(--muted-strong);
+  font-size: 13px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.timelineRow time span {
+  color: #a7b0aa;
+}
+
+.timelineBody {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.timelineBody strong {
+  overflow: hidden;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.timelineBody span {
   color: var(--muted);
-  font-size: 13px;
-}
-
-.linkLine {
-  margin-top: 6px;
-  font-size: 13px;
-  word-break: break-all;
-}
-
-.linkLine a {
-  color: #0f766e;
+  font-size: 11px;
 }
 
 .rowActions {
   display: flex;
-  flex-wrap: wrap;
   gap: 6px;
-  justify-content: flex-end;
 }
 
-.secondaryButton {
-  background: rgba(241, 245, 249, 0.9) !important;
+.rowActions button {
+  min-height: 31px;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--muted-strong);
+  padding: 5px 8px;
+  font-size: 10px;
 }
 
-.activeStatus {
-  color: #065f46;
-  background: #d1fae5;
+.scheduleForm {
+  display: grid;
+  grid-template-columns: minmax(240px, 1.5fr) 120px 120px 120px auto auto;
+  align-items: end;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
 }
 
-.inactiveStatus {
-  color: #9f1239;
-  background: #ffe4e6;
+.scheduleTitleField {
+  min-width: 0;
 }
 
-@media (max-width: 760px) {
-  .page {
-    padding: 26px 14px 40px;
-  }
+.milestoneList {
+  display: grid;
+  gap: 8px;
+}
 
-  .sub {
-    font-size: 15px;
-  }
+.milestoneRow {
+  display: grid;
+  grid-template-columns: 34px 22px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+}
 
-  .card {
-    border-radius: 16px;
-    padding: 14px;
-  }
+.milestoneRow[data-done="true"] {
+  background: #f0f8f4;
+  border-color: #c8e5d7;
+}
 
-  .addRow,
-  .addRowJournal,
-  .addRowLaunchpad,
-  .addRowCalendar,
-  .launchpadFilterRow,
-  .taskItem {
+.milestoneRow > span:not(.stepNumber) {
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.milestoneRow[data-done="true"] > span:not(.stepNumber) {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.milestoneRow > strong {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.milestoneRow[data-done="true"] > strong {
+  color: var(--accent-strong);
+}
+
+.stepNumber {
+  color: #9aa49e;
+  font-size: 11px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.monthlyForm {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  margin: 14px 0 12px;
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 9px 16px;
+  margin-top: 20px;
+  padding: 16px;
+  color: var(--muted);
+  font-size: 11px;
+  text-align: center;
+}
+
+.footer strong {
+  color: var(--text);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 1060px) {
+  .primaryGrid,
+  .bottomGrid {
     grid-template-columns: 1fr;
   }
 
-  .launchpadCountText {
-    justify-self: start;
+  .checklistLanes {
+    grid-template-columns: 1fr;
   }
 
-  .sectionHeader {
-    flex-direction: column;
+  .scheduleForm {
+    grid-template-columns: minmax(220px, 1fr) repeat(3, 110px) auto;
+  }
+
+  .scheduleForm > .secondaryButton {
+    grid-column: -2 / -1;
+  }
+}
+
+@media (max-width: 820px) {
+  .page {
+    width: min(100% - 22px, 720px);
+    padding-top: 18px;
+  }
+
+  .topbar {
     align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .nowPanel {
+    min-width: 0;
+    justify-items: start;
+  }
+
+  .focusHero {
+    grid-template-columns: 1fr;
+    padding: 24px;
+    border-radius: 22px;
+  }
+
+  .focusScore {
+    padding: 16px;
+  }
+
+  .focusScore > strong {
+    font-size: 42px;
+  }
+
+  .checklistForm {
+    grid-template-columns: minmax(0, 1fr) 140px;
+  }
+
+  .checklistForm .primaryButton,
+  .checklistForm .secondaryButton {
+    width: 100%;
+  }
+
+  .scheduleForm {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .scheduleTitleField {
+    grid-column: 1 / -1;
+  }
+
+  .timelineRow {
+    grid-template-columns: 22px 100px minmax(0, 1fr);
+  }
+
+  .rowActions {
+    grid-column: 2 / -1;
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 560px) {
+  .topbar h1 {
+    font-size: 39px;
+  }
+
+  .panel,
+  .weekSection {
+    padding: 16px;
+    border-radius: 18px;
+  }
+
+  .sectionTitleRow {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .progressSummary {
+    justify-items: start;
+  }
+
+  .checklistForm,
+  .ddaySelectRow,
+  .monthlyForm,
+  .scheduleForm {
+    grid-template-columns: 1fr;
+  }
+
+  .scheduleTitleField {
+    grid-column: auto;
+  }
+
+  .scheduleControls {
+    width: 100%;
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .scheduleControls select {
+    width: 100%;
+  }
+
+  .scheduleSummary {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .timelineRow {
+    grid-template-columns: 22px minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .timelineRow time {
+    grid-column: 2;
+    font-size: 12px;
+  }
+
+  .timelineBody {
+    grid-column: 2;
+  }
+
+  .rowActions {
+    grid-column: 2;
+    justify-content: flex-start;
+  }
+
+  .milestoneRow {
+    grid-template-columns: 28px 20px minmax(0, 1fr);
+  }
+
+  .milestoneRow > strong {
+    display: none;
+  }
+
+  .ddayItem {
+    grid-template-columns: 56px minmax(0, 1fr);
+  }
+
+  .ddayItem .iconButton {
+    grid-column: 2;
+    justify-self: end;
+  }
+
+  .focusActions {
+    flex-direction: column;
+  }
+
+  .focusActions a {
+    justify-content: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .focusActions a,
+  .dayButton,
+  .primaryButton,
+  .secondaryButton,
+  .iconButton,
+  .rowActions button,
+  .progressFill {
+    transition: none;
   }
 }

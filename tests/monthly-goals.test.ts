@@ -6,9 +6,9 @@ import {
   normalizeStoredMonthlyGoals,
 } from "../src/lib/monthlyGoals.ts";
 
-test("getMonthKey: YYYY-MM 형식으로 월 키를 반환한다", () => {
-  assert.equal(getMonthKey(new Date("2026-02-19T09:00:00+09:00")), "2026-02");
-  assert.equal(getMonthKey(new Date("2026-11-01T00:00:00+09:00")), "2026-11");
+test("getMonthKey: 사용자의 현지 날짜를 YYYY-MM 형식으로 반환한다", () => {
+  assert.equal(getMonthKey(new Date(2026, 1, 19, 12)), "2026-02");
+  assert.equal(getMonthKey(new Date(2026, 10, 1, 12)), "2026-11");
 });
 
 test("normalizeStoredMonthlyGoals: 유효한 월 키와 목표만 남긴다", () => {
