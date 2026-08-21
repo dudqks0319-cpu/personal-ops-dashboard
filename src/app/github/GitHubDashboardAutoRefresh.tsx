@@ -36,7 +36,7 @@ export function GitHubDashboardAutoRefresh({ data }: { data: GitHubDashboardData
   const [isPending, startTransition] = useTransition();
   const [remainingMs, setRemainingMs] = useState(GITHUB_AUTO_REFRESH_INTERVAL_MS);
   const [isPageVisible, setIsPageVisible] = useState(true);
-  const lastRefreshAtRef = useRef<number | null>(null);
+  const lastRefreshAtRef = useRef(Date.now());
   const refreshInFlightRef = useRef(false);
 
   const refreshDashboard = useCallback(() => {
@@ -56,15 +56,10 @@ export function GitHubDashboardAutoRefresh({ data }: { data: GitHubDashboardData
   }, [isPending]);
 
   useEffect(() => {
-    const now = Date.now();
-    lastRefreshAtRef.current = now;
-    setRemainingMs(GITHUB_AUTO_REFRESH_INTERVAL_MS);
-    setIsPageVisible(document.visibilityState === "visible");
-
     const tick = () => {
       const currentTime = Date.now();
       const visible = document.visibilityState === "visible";
-      const lastRefreshAt = lastRefreshAtRef.current ?? currentTime;
+      const lastRefreshAt = lastRefreshAtRef.current;
 
       setIsPageVisible(visible);
       setRemainingMs(getAutoRefreshDelayMs(lastRefreshAt, currentTime));
@@ -81,11 +76,13 @@ export function GitHubDashboardAutoRefresh({ data }: { data: GitHubDashboardData
       }
     };
 
+    const initialTick = window.setTimeout(tick, 0);
     const timer = window.setInterval(tick, TIMER_TICK_MS);
     document.addEventListener("visibilitychange", tick);
     window.addEventListener("focus", tick);
 
     return () => {
+      window.clearTimeout(initialTick);
       window.clearInterval(timer);
       document.removeEventListener("visibilitychange", tick);
       window.removeEventListener("focus", tick);
