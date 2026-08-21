@@ -7,7 +7,7 @@ import {
   type GitHubDashboardData,
 } from "./githubDashboard";
 
-export const GITHUB_DATA_REVALIDATE_SECONDS = 6 * 60 * 60;
+export const GITHUB_DATA_REVALIDATE_SECONDS = 5 * 60;
 
 const MAX_REPOSITORY_PAGES = 10;
 const GITHUB_API_ROOT = "https://api.github.com";
