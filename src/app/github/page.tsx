@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { GitHubDashboardClient } from "./GitHubDashboardClient";
+import { GitHubDashboardAutoRefresh } from "./GitHubDashboardAutoRefresh";
 import {
   GitHubDashboardFetchError,
   getGitHubDashboardData,
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   description: "공개 GitHub 저장소의 최근 활동, 언어, Stars와 프로젝트 흐름을 확인하는 개인 대시보드",
 };
 
-export const revalidate = 21_600;
+export const revalidate = 300;
 
 async function loadDashboard() {
   try {
@@ -38,7 +38,7 @@ export default async function GitHubDashboardPage() {
   const result = await loadDashboard();
 
   if (result.data) {
-    return <GitHubDashboardClient data={result.data} />;
+    return <GitHubDashboardAutoRefresh data={result.data} />;
   }
 
   return (
