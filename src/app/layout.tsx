@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
+import { AppNav } from "@/components/AppNav";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Youngbin Life OS",
-  description: "집밥노트 90일 집중, 오늘 체크리스트, 교대근무 시간표와 D-day를 관리하는 개인 운영 화면",
+  title: {
+    default: "Youngbin Life OS",
+    template: "%s · Youngbin Life OS",
+  },
+  description: "오늘의 생활 운영과 GitHub 프로젝트 흐름을 한곳에서 확인하는 개인 대시보드",
 };
 
 export default function RootLayout({
@@ -13,7 +17,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-      <body>{children}</body>
+      <body>
+        <AppNav />
+        {children}
+      </body>
     </html>
   );
 }
