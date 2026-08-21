@@ -94,7 +94,7 @@ export function GitHubDashboardAutoRefresh({ data }: { data: GitHubDashboardData
   }, [refreshDashboard]);
 
   const statusText = !isPageVisible
-    ? "탭으로 돌아오면 즉시 확인"
+    ? "탭으로 돌아오면 갱신 시점 확인"
     : isPending
       ? "최신 공개 데이터 확인 중"
       : `다음 확인 ${formatCountdown(remainingMs)}`;
