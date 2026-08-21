@@ -36,7 +36,7 @@ export function GitHubDashboardAutoRefresh({ data }: { data: GitHubDashboardData
   const [isPending, startTransition] = useTransition();
   const [remainingMs, setRemainingMs] = useState(GITHUB_AUTO_REFRESH_INTERVAL_MS);
   const [isPageVisible, setIsPageVisible] = useState(true);
-  const lastRefreshAtRef = useRef(Date.now());
+  const lastRefreshAtRef = useRef<number | null>(null);
   const refreshInFlightRef = useRef(false);
 
   const refreshDashboard = useCallback(() => {
@@ -59,7 +59,11 @@ export function GitHubDashboardAutoRefresh({ data }: { data: GitHubDashboardData
     const tick = () => {
       const currentTime = Date.now();
       const visible = document.visibilityState === "visible";
-      const lastRefreshAt = lastRefreshAtRef.current;
+      const lastRefreshAt = lastRefreshAtRef.current ?? currentTime;
+
+      if (lastRefreshAtRef.current === null) {
+        lastRefreshAtRef.current = currentTime;
+      }
 
       setIsPageVisible(visible);
       setRemainingMs(getAutoRefreshDelayMs(lastRefreshAt, currentTime));
