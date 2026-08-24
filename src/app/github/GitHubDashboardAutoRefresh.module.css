@@ -68,6 +68,17 @@
   text-align: right;
 }
 
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .refreshActions button {
   min-height: 38px;
   display: inline-flex;

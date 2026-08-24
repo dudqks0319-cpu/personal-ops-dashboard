@@ -19,3 +19,9 @@ export function shouldAutoRefresh({
 }): boolean {
   return isVisible && getAutoRefreshDelayMs(lastRefreshAt, now) === 0;
 }
+
+export function getRefreshAnnouncement(wasPending: boolean, isPending: boolean): string | null {
+  if (!wasPending && isPending) return "최신 공개 데이터 새로고침 시작";
+  if (wasPending && !isPending) return "최신 공개 데이터 새로고침 완료";
+  return null;
+}
