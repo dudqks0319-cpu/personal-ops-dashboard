@@ -6,9 +6,11 @@ import type { GitHubDashboardData } from "@/lib/githubDashboard";
 import {
   GITHUB_AUTO_REFRESH_INTERVAL_MS,
   getAutoRefreshDelayMs,
+  getRefreshAnnouncement,
   shouldAutoRefresh,
 } from "@/lib/githubAutoRefresh";
 import { GitHubDashboardClient } from "./GitHubDashboardClient";
+import { GitHubRefreshStatus } from "./GitHubRefreshStatus";
 import styles from "./GitHubDashboardAutoRefresh.module.css";
 
 const TIMER_TICK_MS = 1_000;
@@ -36,8 +38,10 @@ export function GitHubDashboardAutoRefresh({ data }: { data: GitHubDashboardData
   const [isPending, startTransition] = useTransition();
   const [remainingMs, setRemainingMs] = useState(GITHUB_AUTO_REFRESH_INTERVAL_MS);
   const [isPageVisible, setIsPageVisible] = useState(true);
+  const [refreshAnnouncement, setRefreshAnnouncement] = useState("");
   const lastRefreshAtRef = useRef<number | null>(null);
   const refreshInFlightRef = useRef(false);
+  const wasPendingRef = useRef(false);
 
   const refreshDashboard = useCallback(() => {
     if (refreshInFlightRef.current) return;
@@ -52,7 +56,11 @@ export function GitHubDashboardAutoRefresh({ data }: { data: GitHubDashboardData
   }, [router]);
 
   useEffect(() => {
+    const announcement = getRefreshAnnouncement(wasPendingRef.current, isPending);
+
+    if (announcement) setRefreshAnnouncement(announcement);
     if (!isPending) refreshInFlightRef.current = false;
+    wasPendingRef.current = isPending;
   }, [isPending]);
 
   useEffect(() => {
@@ -111,9 +119,12 @@ export function GitHubDashboardAutoRefresh({ data }: { data: GitHubDashboardData
         </div>
 
         <div className={styles.refreshActions}>
-          <span className={styles.refreshStatus} aria-live="polite">
-            {statusText}
-          </span>
+          <GitHubRefreshStatus
+            statusText={statusText}
+            announcement={refreshAnnouncement}
+            statusClassName={styles.refreshStatus}
+            announcementClassName={styles.visuallyHidden}
+          />
           <button type="button" onClick={refreshDashboard} disabled={isPending}>
             <RefreshIcon />
             {isPending ? "확인 중" : "지금 갱신"}

@@ -4,6 +4,7 @@ import test from "node:test";
 type AutoRefreshModule = {
   GITHUB_AUTO_REFRESH_INTERVAL_MS: number;
   getAutoRefreshDelayMs: (lastRefreshAt: number, now: number) => number;
+  getRefreshAnnouncement: (wasPending: boolean, isPending: boolean) => string | null;
   shouldAutoRefresh: (input: {
     lastRefreshAt: number;
     now: number;
@@ -56,4 +57,14 @@ test("automatic refresh only runs when the page is visible and due", async () =>
     autoRefresh.shouldAutoRefresh({ lastRefreshAt: 1_000, now: 900_000, isVisible: false }),
     false,
   );
+});
+
+test("refresh announcements only describe meaningful state changes", async () => {
+  const autoRefresh = await loadAutoRefreshModule();
+  assert.ok(autoRefresh);
+
+  assert.equal(autoRefresh.getRefreshAnnouncement(false, false), null);
+  assert.equal(autoRefresh.getRefreshAnnouncement(false, true), "최신 공개 데이터 새로고침 시작");
+  assert.equal(autoRefresh.getRefreshAnnouncement(true, false), "최신 공개 데이터 새로고침 완료");
+  assert.equal(autoRefresh.getRefreshAnnouncement(true, true), null);
 });
